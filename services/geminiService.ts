@@ -81,7 +81,9 @@ export const generateAudioAI = async (text: string): Promise<string | undefined>
 };
 
 export const generateParentTipAI = async (child: Child): Promise<string> => {
-  const prompt = `Como especialista em pedagogia, dê uma dica curta (máximo 200 caracteres) e prática para um pai ajudar seu filho de ${child.age} anos que tem dificuldade em ${child.difficultySubject || 'aprendizado geral'}. Seja encorajador.`;
+  // Fix: Property 'difficultySubject' does not exist on type 'Child'. Did you mean 'difficultySubjects'?
+  const subjectsStr = child.difficultySubjects?.length > 0 ? child.difficultySubjects.join(', ') : 'aprendizado geral';
+  const prompt = `Como especialista em pedagogia, dê uma dica curta (máximo 200 caracteres) e prática para um pai ajudar seu filho de ${child.age} anos que tem dificuldade em ${subjectsStr}. Seja encorajador.`;
   try {
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
     return response.text || "Incentive a curiosidade hoje!";

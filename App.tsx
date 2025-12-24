@@ -21,7 +21,9 @@ import InglesTodoDiaPage from './pages/InglesTodoDiaPage';
 import BehaviorDashboardPage from './pages/BehaviorDashboardPage';
 import CheckInPage from './pages/CheckInPage';
 import ActionPlanPage from './pages/ActionPlanPage';
-import { Child, Exercise, Guardian, AuthState, DailyCheckIn, BehaviorGoal } from './types';
+import ChildDetailPage from './pages/ChildDetailPage';
+import ManageGoalsPage from './pages/ManageGoalsPage'; // Novo Import
+import { Child, Exercise, Guardian, AuthState, DailyCheckIn, BehaviorGoal, Subject } from './types';
 
 const App: React.FC = () => {
   // --- Auth State ---
@@ -40,12 +42,13 @@ const App: React.FC = () => {
         xp: c.xp || 0,
         stars: c.stars || 0,
         streak: c.streak || 0,
+        difficultySubjects: c.difficultySubjects || [],
         accessCode: c.accessCode || `${c.name.substring(0,3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`
       }));
     }
     return [
-      { id: '1', name: 'Lucas', age: 8, grade: '3º Ano', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas', accessCode: 'LUC-452', xp: 120, stars: 45, streak: 3 },
-      { id: '2', name: 'Sofia', age: 5, grade: 'Pré-escola', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia', accessCode: 'SOF-128', xp: 50, stars: 12, streak: 1 }
+      { id: '1', name: 'Lucas', age: 8, grade: '3º Ano', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas', accessCode: 'LUC-452', xp: 120, stars: 45, streak: 3, difficultySubjects: [Subject.MATH] },
+      { id: '2', name: 'Sofia', age: 5, grade: 'Pré-escola', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia', accessCode: 'SOF-128', xp: 50, stars: 12, streak: 1, difficultySubjects: [Subject.PORTUGUESE] }
     ];
   });
 
@@ -101,6 +104,9 @@ const App: React.FC = () => {
   };
 
   const saveCheckIn = (checkIn: DailyCheckIn) => setCheckIns(prev => [checkIn, ...prev]);
+  
+  const addGoal = (goal: BehaviorGoal) => setGoals(prev => [...prev, goal]);
+  const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
 
   return (
     <HashRouter>
@@ -112,6 +118,7 @@ const App: React.FC = () => {
               <Route path="/login" element={<LoginPage onLogin={login} children={children} />} />
               <Route path="/student" element={<StudentDashboardPage children={children} history={history} onUpdateChild={updateChild} />} />
               <Route path="/dashboard" element={auth.isAuthenticated ? <DashboardPage guardian={auth.user} children={children} /> : <Navigate to="/login" />} />
+              <Route path="/child/:id" element={auth.isAuthenticated ? <ChildDetailPage children={children} history={history} /> : <Navigate to="/login" />} />
               <Route path="/perfil" element={<GuardianProfilePage guardian={auth.user} onUpdate={updateGuardian} onLogout={logout} />} />
               <Route path="/programas" element={<ProgramsListPage />} />
               <Route path="/exercicio-facil" element={<ProgramPage />} />
@@ -125,11 +132,12 @@ const App: React.FC = () => {
               
               {/* Routine Module Routes */}
               <Route path="/rotina" element={auth.isAuthenticated ? <BehaviorDashboardPage children={children} checkIns={checkIns} goals={goals} /> : <Navigate to="/login" />} />
+              <Route path="/rotina/metas" element={auth.isAuthenticated ? <ManageGoalsPage children={children} goals={goals} onAddGoal={addGoal} onDeleteGoal={deleteGoal} /> : <Navigate to="/login" />} />
               <Route path="/rotina/checkin" element={<CheckInPage children={children} onSave={saveCheckIn} />} />
               <Route path="/rotina/plano" element={<ActionPlanPage children={children} checkIns={checkIns} />} />
               
-              <Route path="/reports" element={<ReportsPage history={history} />} />
-              <Route path="/settings" element={<SettingsPage children={children} onUpdateChild={updateChild} onAddChild={addChild} />} />
+              <Route path="/reports" element={<ReportsPage history={history} children={children} />} />
+              <Route path="/settings" element={<SettingsPage children={children} onUpdateChild={updateChild} onAddChild={addChild} guardian={auth.user} />} />
               <Route path="/admin" element={<AdminDashboardPage history={history} />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
@@ -143,8 +151,8 @@ const App: React.FC = () => {
 
 const BottomNavWrapper: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
   const location = useLocation();
-  const hidePaths = ['/', '/login', '/exercicio-facil/criar', '/exercicio-facil/quiz', '/student', '/leitura-guiada', '/artes-criativas', '/ingles-todo-dia', '/rotina/checkin'];
-  const shouldHide = hidePaths.some(path => location.pathname === path || location.pathname.startsWith('/exercicio-facil/quiz/'));
+  const hidePaths = ['/', '/login', '/exercicio-facil/criar', '/exercicio-facil/quiz', '/student', '/leitura-guiada', '/artes-criativas', '/ingles-todo-dia', '/rotina/checkin', '/rotina/metas'];
+  const shouldHide = hidePaths.some(path => location.pathname === path || location.pathname.startsWith('/exercicio-facil/quiz/') || location.pathname.startsWith('/child/'));
   if (!isAuthenticated || shouldHide) return null;
   return (
     <nav className="sticky bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-surface-dark/95 border-t border-gray-200 dark:border-gray-800 backdrop-blur-lg pt-2 pb-safe px-2 no-print">

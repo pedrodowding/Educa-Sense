@@ -47,16 +47,20 @@ const DashboardPage: React.FC<Props> = ({ guardian, children }) => {
            </div>
            <div className="flex gap-4 overflow-x-auto no-scrollbar py-2">
               {children.map(child => (
-                <div key={child.id} className="flex flex-col items-center gap-2 shrink-0 bg-white dark:bg-surface-dark p-4 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm min-w-[120px]">
+                <button 
+                  key={child.id}
+                  onClick={() => navigate(`/child/${child.id}`)}
+                  className="flex flex-col items-center gap-2 shrink-0 bg-white dark:bg-surface-dark p-4 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-soft min-w-[120px] active:scale-95 transition-all"
+                >
                    <div className="size-16 rounded-2xl overflow-hidden border-2 border-primary/20">
                       <img src={child.avatar} alt={child.name} className="w-full h-full object-cover" />
                    </div>
                    <span className="font-black text-sm">{child.name}</span>
                    <div className="flex gap-1">
                       <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                      <span className="text-[8px] font-bold text-gray-400 uppercase">Ativo</span>
+                      <span className="text-[8px] font-bold text-gray-400 uppercase">Ver Detalhes</span>
                    </div>
-                </div>
+                </button>
               ))}
            </div>
         </section>
@@ -71,7 +75,7 @@ const DashboardPage: React.FC<Props> = ({ guardian, children }) => {
               <p className="text-sm font-medium leading-relaxed italic">
                  "{aiTip}"
               </p>
-              <button className="text-[10px] font-black uppercase text-primary underline">Ver plano de estudo</button>
+              <button onClick={() => navigate('/programas')} className="text-[10px] font-black uppercase text-primary underline">Ver programas</button>
            </div>
            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-primary/5 text-[120px] rotate-12">lightbulb</span>
         </section>
@@ -91,42 +95,17 @@ const DashboardPage: React.FC<Props> = ({ guardian, children }) => {
               <div className="h-40 bg-gray-100 dark:bg-gray-800 relative overflow-hidden rounded-[32px]">
                 <img 
                   src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800&auto=format&fit=crop" 
-                  className="w-full h-full object-cover transition-opacity duration-300"
-                  onLoad={(e) => (e.currentTarget.style.opacity = '1')}
-                  style={{ opacity: 0 }}
+                  className="w-full h-full object-cover"
+                  alt="Reforço IA"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                 <div className="absolute bottom-5 left-5">
                   <h4 className="text-white text-2xl font-black">Reforço IA</h4>
-                  <p className="text-primary text-[10px] font-black uppercase tracking-widest">Foco: Matemática</p>
+                  <p className="text-primary text-[10px] font-black uppercase tracking-widest">Personalize o aprendizado</p>
                 </div>
               </div>
             </div>
           </button>
-        </section>
-
-        {/* Quick Report */}
-        <section className="bg-white dark:bg-surface-dark rounded-[40px] p-6 border border-gray-100 dark:border-gray-800 shadow-soft">
-           <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-black">Progresso da Semana</h3>
-              <span className="text-green-500 font-bold text-xs">+12%</span>
-           </div>
-           <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                 <div className="size-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                    <span className="material-symbols-outlined">menu_book</span>
-                 </div>
-                 <div className="flex-1">
-                    <div className="flex justify-between text-[10px] font-bold mb-1">
-                       <span>Leitura</span>
-                       <span>8/10</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-blue-400 w-[80%]"></div>
-                    </div>
-                 </div>
-              </div>
-           </div>
         </section>
       </main>
     </div>

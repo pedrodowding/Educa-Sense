@@ -101,7 +101,12 @@ const BehaviorDashboardPage: React.FC<Props> = ({ children, checkIns, goals }) =
         <section className="space-y-4">
            <div className="flex justify-between items-center px-1">
               <h3 className="text-xl font-black">Metas da Semana</h3>
-              <button className="text-[10px] font-black text-primary uppercase">Gerenciar</button>
+              <button 
+                onClick={() => navigate('/rotina/metas')}
+                className="text-[10px] font-black text-primary uppercase"
+              >
+                Gerenciar
+              </button>
            </div>
            <div className="space-y-3">
               {childGoals.length > 0 ? childGoals.map(goal => (

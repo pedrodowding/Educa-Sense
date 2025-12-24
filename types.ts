@@ -55,7 +55,7 @@ export interface Child {
   grade: string;
   avatar: string;
   accessCode: string;
-  difficultySubject?: Subject;
+  difficultySubjects: Subject[]; // Alterado para array
   badges?: string[];
   xp: number;
   stars: number;
