@@ -22,147 +22,155 @@ import BehaviorDashboardPage from './pages/BehaviorDashboardPage';
 import CheckInPage from './pages/CheckInPage';
 import ActionPlanPage from './pages/ActionPlanPage';
 import ChildDetailPage from './pages/ChildDetailPage';
-import ManageGoalsPage from './pages/ManageGoalsPage'; // Novo Import
-import { Child, Exercise, Guardian, AuthState, DailyCheckIn, BehaviorGoal, Subject } from './types';
+import ManageGoalsPage from './pages/ManageGoalsPage';
+import TeacherDashboardPage from './pages/TeacherDashboardPage';
+import ClassDetailsPage from './pages/ClassDetailsPage';
+import TeacherCreateActivityPage from './pages/TeacherCreateActivityPage';
+import { Child, Exercise, Guardian, AuthState, DailyCheckIn, BehaviorGoal, Subject, ClassGroup } from './types';
 
 const App: React.FC = () => {
-  // --- Auth State ---
   const [auth, setAuth] = useState<AuthState>(() => {
     const saved = localStorage.getItem('educasense_auth');
     return saved ? JSON.parse(saved) : { user: null, isAuthenticated: false };
   });
 
-  // --- Children State ---
   const [children, setChildren] = useState<Child[]>(() => {
     const saved = localStorage.getItem('educasense_children');
-    if (saved) {
-      const parsed: Child[] = JSON.parse(saved);
-      return parsed.map(c => ({
-        ...c,
-        xp: c.xp || 0,
-        stars: c.stars || 0,
-        streak: c.streak || 0,
-        difficultySubjects: c.difficultySubjects || [],
-        accessCode: c.accessCode || `${c.name.substring(0,3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`
-      }));
-    }
+    if (saved) return JSON.parse(saved);
     return [
       { id: '1', name: 'Lucas', age: 8, grade: '3º Ano', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas', accessCode: 'LUC-452', xp: 120, stars: 45, streak: 3, difficultySubjects: [Subject.MATH] },
       { id: '2', name: 'Sofia', age: 5, grade: 'Pré-escola', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia', accessCode: 'SOF-128', xp: 50, stars: 12, streak: 1, difficultySubjects: [Subject.PORTUGUESE] }
     ];
   });
 
-  // --- Routine State ---
-  const [checkIns, setCheckIns] = useState<DailyCheckIn[]>(() => {
-    const saved = localStorage.getItem('educasense_checkins');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [classes] = useState<ClassGroup[]>([
+    { id: 'c1', name: '3º Ano B', grade: '3º Ano', studentCount: 24, engagement: 82 },
+    { id: 'c2', name: 'Pré-escola A', grade: 'Pré-escola', studentCount: 18, engagement: 95 }
+  ]);
 
-  const [goals, setGoals] = useState<BehaviorGoal[]>(() => {
-    const saved = localStorage.getItem('educasense_goals');
-    return saved ? JSON.parse(saved) : [
-      { id: 'g1', childId: '1', title: 'Rotina de Sono (Dormir às 21h)', targetDays: 7, completedDays: [] },
-      { id: 'g2', childId: '1', title: 'Leitura Diária (15 min)', targetDays: 5, completedDays: [] }
-    ];
-  });
-
-  // --- History State ---
   const [history, setHistory] = useState<Exercise[]>(() => {
     const saved = localStorage.getItem('educasense_history_v5');
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [checkIns, setCheckIns] = useState<DailyCheckIn[]>([]);
+  const [goals, setGoals] = useState<BehaviorGoal[]>([]);
+
   useEffect(() => {
     localStorage.setItem('educasense_auth', JSON.stringify(auth));
     localStorage.setItem('educasense_children', JSON.stringify(children));
     localStorage.setItem('educasense_history_v5', JSON.stringify(history));
-    localStorage.setItem('educasense_checkins', JSON.stringify(checkIns));
-    localStorage.setItem('educasense_goals', JSON.stringify(goals));
-  }, [auth, children, history, checkIns, goals]);
+  }, [auth, children, history]);
 
-  const login = (email: string, name?: string) => {
+  const login = (email: string, role: 'guardian' | 'teacher' = 'guardian', name?: string) => {
     setAuth({
       isAuthenticated: true,
-      user: { id: 'u1', name: name || 'Usuário', email, plan: 'Premium', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Parent' }
+      user: { 
+        id: role === 'teacher' ? 't1' : 'u1', 
+        name: name || (role === 'teacher' ? 'Prof. Ricardo' : 'Usuário'), 
+        email, 
+        plan: 'Premium', 
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${role}`,
+        role 
+      }
     });
   };
 
-  const logout = () => setAuth({ user: null, isAuthenticated: false });
-
-  const updateGuardian = (updates: Partial<Guardian>) => {
-    if (auth.user) setAuth({ ...auth, user: { ...auth.user, ...updates } });
+  const logout = () => {
+    setAuth({ user: null, isAuthenticated: false });
+    window.location.hash = '#/login';
   };
+
+  const saveToHistory = (exercise: Exercise) => setHistory(prev => [exercise, ...prev]);
 
   const updateChild = (id: string, updates: Partial<Child>) => {
     setChildren(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
-  const addChild = (child: Child) => setChildren(prev => [...prev, child]);
-  const saveToHistory = (exercise: Exercise) => setHistory(prev => [exercise, ...prev]);
-  const updateExercise = (id: string, updates: Partial<Exercise>) => {
-    setHistory(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-  };
-
-  const saveCheckIn = (checkIn: DailyCheckIn) => setCheckIns(prev => [checkIn, ...prev]);
-  
-  const addGoal = (goal: BehaviorGoal) => setGoals(prev => [...prev, goal]);
+  const addCheckIn = (checkIn: DailyCheckIn) => setCheckIns(prev => [checkIn, ...prev]);
+  const addGoal = (goal: BehaviorGoal) => setGoals(prev => [goal, ...prev]);
   const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
 
   return (
     <HashRouter>
       <div className="flex justify-center bg-gray-100 min-h-screen">
         <div className="w-full max-w-md bg-background-light dark:bg-background-dark shadow-2xl relative flex flex-col min-h-screen overflow-hidden">
+          
+          <div className="bg-yellow-400 text-black text-[9px] font-black uppercase text-center py-1 tracking-widest z-[100] no-print">
+            Modo Demonstração • Dados Simulados
+          </div>
+
           <div className="flex-1 overflow-y-auto no-scrollbar">
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage onLogin={login} children={children} />} />
               <Route path="/student" element={<StudentDashboardPage children={children} history={history} onUpdateChild={updateChild} />} />
-              <Route path="/dashboard" element={auth.isAuthenticated ? <DashboardPage guardian={auth.user} children={children} /> : <Navigate to="/login" />} />
-              <Route path="/child/:id" element={auth.isAuthenticated ? <ChildDetailPage children={children} history={history} /> : <Navigate to="/login" />} />
-              <Route path="/perfil" element={<GuardianProfilePage guardian={auth.user} onUpdate={updateGuardian} onLogout={logout} />} />
+              
+              <Route path="/perfil" element={auth.isAuthenticated ? <GuardianProfilePage guardian={auth.user} onUpdate={() => {}} onLogout={logout} /> : <Navigate to="/login" />} />
+
+              <Route path="/dashboard" element={auth.isAuthenticated && auth.user?.role === 'guardian' ? <DashboardPage guardian={auth.user} children={children} history={history} /> : <Navigate to="/login" />} />
+              <Route path="/child/:id" element={<ChildDetailPage children={children} history={history} />} />
+              <Route path="/settings" element={auth.isAuthenticated ? <SettingsPage children={children} onUpdateChild={updateChild} onAddChild={() => {}} guardian={auth.user} /> : <Navigate to="/login" />} />
+              
+              <Route path="/teacher" element={auth.isAuthenticated && auth.user?.role === 'teacher' ? <TeacherDashboardPage teacher={auth.user} classes={classes} /> : <Navigate to="/login" />} />
+              <Route path="/teacher/class/:id" element={<ClassDetailsPage classes={classes} children={children} history={history} />} />
+              <Route path="/teacher/create" element={<TeacherCreateActivityPage teacher={auth.user} onSave={saveToHistory} />} />
+
+              {/* Roteamento de Programas IA */}
               <Route path="/programas" element={<ProgramsListPage />} />
               <Route path="/exercicio-facil" element={<ProgramPage />} />
               <Route path="/exercicio-facil/criar" element={<CreateExercisePage children={children} onSave={saveToHistory} />} />
               <Route path="/exercicio-facil/resultado/:id" element={<ResultPage history={history} />} />
-              <Route path="/exercicio-facil/quiz/:id" element={<QuizPage history={history} onUpdate={updateExercise} children={children} onUpdateChild={updateChild} />} />
-              <Route path="/exercicio-facil/historico" element={<HistoryPage history={history} />} />
+              <Route path="/exercicio-facil/quiz/:id" element={<QuizPage history={history} onUpdate={() => {}} children={children} onUpdateChild={updateChild} />} />
+              
+              {/* Novas rotas de programas fixadas */}
               <Route path="/leitura-guiada" element={<LeituraGuiadaPage children={children} onSave={saveToHistory} />} />
               <Route path="/artes-criativas" element={<ArtesCriativasPage children={children} onSave={saveToHistory} />} />
               <Route path="/ingles-todo-dia" element={<InglesTodoDiaPage children={children} onSave={saveToHistory} />} />
               
-              {/* Routine Module Routes */}
-              <Route path="/rotina" element={auth.isAuthenticated ? <BehaviorDashboardPage children={children} checkIns={checkIns} goals={goals} /> : <Navigate to="/login" />} />
-              <Route path="/rotina/metas" element={auth.isAuthenticated ? <ManageGoalsPage children={children} goals={goals} onAddGoal={addGoal} onDeleteGoal={deleteGoal} /> : <Navigate to="/login" />} />
-              <Route path="/rotina/checkin" element={<CheckInPage children={children} onSave={saveCheckIn} />} />
+              {/* Rotas de Rotina */}
+              <Route path="/rotina" element={<BehaviorDashboardPage children={children} checkIns={checkIns} goals={goals} />} />
+              <Route path="/rotina/checkin" element={<CheckInPage children={children} onSave={addCheckIn} />} />
               <Route path="/rotina/plano" element={<ActionPlanPage children={children} checkIns={checkIns} />} />
-              
+              <Route path="/rotina/metas" element={<ManageGoalsPage children={children} goals={goals} onAddGoal={addGoal} onDeleteGoal={deleteGoal} />} />
+
               <Route path="/reports" element={<ReportsPage history={history} children={children} />} />
-              <Route path="/settings" element={<SettingsPage children={children} onUpdateChild={updateChild} onAddChild={addChild} guardian={auth.user} />} />
-              <Route path="/admin" element={<AdminDashboardPage history={history} />} />
+              
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </div>
-          <BottomNavWrapper isAuthenticated={auth.isAuthenticated} />
+          <BottomNavWrapper isAuthenticated={auth.isAuthenticated} role={auth.user?.role} />
         </div>
       </div>
     </HashRouter>
   );
 };
 
-const BottomNavWrapper: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
+const BottomNavWrapper: React.FC<{ isAuthenticated: boolean, role?: string }> = ({ isAuthenticated, role }) => {
   const location = useLocation();
-  const hidePaths = ['/', '/login', '/exercicio-facil/criar', '/exercicio-facil/quiz', '/student', '/leitura-guiada', '/artes-criativas', '/ingles-todo-dia', '/rotina/checkin', '/rotina/metas'];
+  const hidePaths = ['/', '/login', '/student', '/rotina/checkin', '/teacher/create'];
   const shouldHide = hidePaths.some(path => location.pathname === path || location.pathname.startsWith('/exercicio-facil/quiz/') || location.pathname.startsWith('/child/'));
+  
   if (!isAuthenticated || shouldHide) return null;
+
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-surface-dark/95 border-t border-gray-200 dark:border-gray-800 backdrop-blur-lg pt-2 pb-safe px-2 no-print">
-      <div className="grid grid-cols-5 h-16 items-center">
-        <NavButton icon="home" label="Início" to="/dashboard" />
-        <NavButton icon="assignment" label="Rotina" to="/rotina" />
-        <NavButton icon="school" label="Programas" to="/programas" />
-        <NavButton icon="bar_chart" label="Relatórios" to="/reports" />
-        <NavButton icon="settings" label="Ajustes" to="/settings" />
-      </div>
+    <nav className="sticky bottom-0 left-0 right-0 z-[60] bg-white/95 dark:bg-surface-dark/95 border-t border-gray-200 dark:border-gray-800 backdrop-blur-lg pt-2 pb-safe px-2 no-print">
+      {role === 'teacher' ? (
+        <div className="grid grid-cols-4 h-16 items-center">
+          <NavButton icon="dashboard" label="Turmas" to="/teacher" />
+          <NavButton icon="add_box" label="Criar" to="/teacher/create" />
+          <NavButton icon="analytics" label="Insights" to="/reports" />
+          <NavButton icon="account_circle" label="Perfil" to="/perfil" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-5 h-16 items-center">
+          <NavButton icon="home" label="Início" to="/dashboard" />
+          <NavButton icon="assignment" label="Rotina" to="/rotina" />
+          <NavButton icon="school" label="Programas" to="/programas" />
+          <NavButton icon="bar_chart" label="Relatórios" to="/reports" />
+          <NavButton icon="settings" label="Ajustes" to="/settings" />
+        </div>
+      )}
     </nav>
   );
 };

@@ -46,6 +46,8 @@ export interface Exercise {
   score?: number;
   completed?: boolean;
   imageUrl?: string;
+  createdBy?: 'parent' | 'teacher'; // Novo: Origem da atividade
+  teacherName?: string;
 }
 
 export interface Child {
@@ -55,36 +57,19 @@ export interface Child {
   grade: string;
   avatar: string;
   accessCode: string;
-  difficultySubjects: Subject[]; // Alterado para array
+  difficultySubjects: Subject[];
   badges?: string[];
   xp: number;
   stars: number;
   streak: number;
 }
 
-export interface DailyCheckIn {
+export interface ClassGroup {
   id: string;
-  childId: string;
-  date: string;
-  mood: 'feliz' | 'calmo' | 'agitado' | 'triste' | 'bravo';
-  energy: number; // 1-5
-  sleepQuality: number; // 1-5
-  schoolStatus: string;
-  event: string;
-}
-
-export interface BehaviorGoal {
-  id: string;
-  childId: string;
-  title: string;
-  completedDays: string[]; // ISO Dates
-  targetDays: number;
-}
-
-export interface ActionPlan {
-  summary: string;
-  tasks: string[];
-  alert?: string;
+  name: string;
+  grade: string;
+  studentCount: number;
+  engagement: number; // 0-100
 }
 
 export interface Guardian {
@@ -93,9 +78,35 @@ export interface Guardian {
   email: string;
   plan: 'Free' | 'Premium';
   avatar: string;
+  role: 'guardian' | 'teacher'; // Novo: Diferenciação de papel
 }
 
 export interface AuthState {
   user: Guardian | null;
   isAuthenticated: boolean;
+}
+
+export interface DailyCheckIn {
+  id: string;
+  childId: string;
+  date: string;
+  mood: 'feliz' | 'calmo' | 'agitado' | 'triste' | 'bravo';
+  energy: number;
+  sleepQuality: number;
+  schoolStatus: string;
+  event: string;
+}
+
+export interface BehaviorGoal {
+  id: string;
+  childId: string;
+  title: string;
+  completedDays: string[];
+  targetDays: number;
+}
+
+export interface ActionPlan {
+  summary: string;
+  tasks: string[];
+  alert?: string;
 }

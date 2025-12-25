@@ -17,6 +17,19 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
   const [showInviteModal, setShowInviteModal] = useState<Child | null>(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   
+  const gradeOptions = [
+    'Pré-escola',
+    '1º Ano',
+    '2º Ano',
+    '3º Ano',
+    '4º Ano',
+    '5º Ano',
+    '6º Ano',
+    '7º Ano',
+    '8º Ano',
+    '9º Ano'
+  ];
+
   // Suporte Form State
   const [supportSubject, setSupportSubject] = useState('Duvidas');
   const [supportMessage, setSupportMessage] = useState('');
@@ -25,7 +38,7 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
   const [newChild, setNewChild] = useState<Partial<Child>>({
     name: '',
     age: 7,
-    grade: '1º Ano',
+    grade: 'Pré-escola',
     difficultySubjects: [],
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
     accessCode: `ACC-${Math.floor(100 + Math.random() * 900)}`
@@ -73,6 +86,11 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingChild) {
+      // Validação adicional se necessário
+      if (!editingChild.name || !editingChild.age || !editingChild.grade) {
+        alert("Por favor, preencha nome, idade e classe.");
+        return;
+      }
       onUpdateChild(editingChild.id, editingChild);
       setEditingChild(null);
     }
@@ -80,10 +98,27 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação de campos obrigatórios
+    if (!newChild.name || !newChild.age || !newChild.grade) {
+      alert("Por favor, preencha nome, idade e classe para cadastrar o estudante.");
+      return;
+    }
+
     const id = Math.random().toString(36).substr(2, 9);
     const accessCode = `${newChild.name?.substring(0,3).toUpperCase() || 'ACC'}-${Math.floor(100 + Math.random() * 900)}`;
     onAddChild({ ...newChild, id, accessCode, xp: 0, stars: 0, streak: 0 } as Child);
     setIsAdding(false);
+    
+    // Reset form for next time
+    setNewChild({
+      name: '',
+      age: 7,
+      grade: 'Pré-escola',
+      difficultySubjects: [],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
+      accessCode: `ACC-${Math.floor(100 + Math.random() * 900)}`
+    });
   };
 
   return (
@@ -248,10 +283,39 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
             <form onSubmit={isAdding ? handleAdd : handleUpdate} className="space-y-6">
                <div className="space-y-2">
                  <label className="text-[10px] font-black uppercase text-text-sub tracking-widest px-1">Dados Básicos</label>
-                 <input type="text" placeholder="Nome" required className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold" value={isAdding ? newChild.name : editingChild?.name} onChange={(e) => isAdding ? setNewChild({...newChild, name: e.target.value}) : setEditingChild({...editingChild!, name: e.target.value})} />
+                 <input 
+                    type="text" 
+                    placeholder="Nome do aluno" 
+                    required 
+                    className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold focus:ring-2 focus:ring-primary" 
+                    value={isAdding ? newChild.name : editingChild?.name} 
+                    onChange={(e) => isAdding ? setNewChild({...newChild, name: e.target.value}) : setEditingChild({...editingChild!, name: e.target.value})} 
+                 />
                  <div className="grid grid-cols-2 gap-4">
-                    <input type="number" placeholder="Idade" className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold" value={isAdding ? newChild.age : editingChild?.age} onChange={(e) => isAdding ? setNewChild({...newChild, age: parseInt(e.target.value)}) : setEditingChild({...editingChild!, age: parseInt(e.target.value)})} />
-                    <input type="text" placeholder="Série" className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold" value={isAdding ? newChild.grade : editingChild?.grade} onChange={(e) => isAdding ? setNewChild({...newChild, grade: e.target.value}) : setEditingChild({...editingChild!, grade: e.target.value})} />
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-text-sub px-1">Idade</label>
+                      <input 
+                        type="number" 
+                        placeholder="Ex: 7" 
+                        required
+                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold focus:ring-2 focus:ring-primary" 
+                        value={isAdding ? newChild.age : editingChild?.age} 
+                        onChange={(e) => isAdding ? setNewChild({...newChild, age: parseInt(e.target.value)}) : setEditingChild({...editingChild!, age: parseInt(e.target.value)})} 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-text-sub px-1">Classe</label>
+                      <select 
+                        required
+                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl h-14 px-4 font-bold focus:ring-2 focus:ring-primary" 
+                        value={isAdding ? newChild.grade : editingChild?.grade} 
+                        onChange={(e) => isAdding ? setNewChild({...newChild, grade: e.target.value}) : setEditingChild({...editingChild!, grade: e.target.value})}
+                      >
+                        {gradeOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
                  </div>
                </div>
 
@@ -277,7 +341,7 @@ const SettingsPage: React.FC<Props> = ({ children, onUpdateChild, onAddChild, gu
                  </div>
                </div>
 
-               <button type="submit" className="w-full h-16 bg-primary text-black font-black text-lg rounded-2xl shadow-glow">
+               <button type="submit" className="w-full h-16 bg-primary text-black font-black text-lg rounded-2xl shadow-glow active:scale-95 transition-all">
                   {isAdding ? 'Adicionar Estudante' : 'Salvar Alterações'}
                </button>
             </form>

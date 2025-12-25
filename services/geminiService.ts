@@ -63,6 +63,49 @@ export const generateIllustrationAI = async (prompt: string): Promise<string | u
   return undefined;
 };
 
+// Nova função para gerar página de colorir (Line Art)
+export const generateColoringPageAI = async (prompt: string): Promise<string | undefined> => {
+  try {
+    const proAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await proAI.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: {
+        parts: [{ text: `A coloring book page for children, simple black and white line art, thick outlines, no shading, white background. Theme: ${prompt}` }]
+      },
+      config: {
+        imageConfig: { aspectRatio: "3:4", imageSize: "1K" }
+      }
+    });
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
+    }
+  } catch (e) { console.error(e); }
+  return undefined;
+};
+
+// Nova função para transformar foto em desenho de colorir
+export const transformPhotoToColoringAI = async (base64Data: string, mimeType: string): Promise<string | undefined> => {
+  try {
+    const proAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await proAI.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: {
+        parts: [
+          { inlineData: { data: base64Data, mimeType } },
+          { text: "Transform this photo into a simple black and white line art coloring page for children. Thick outlines, no gray areas, purely white and black, cartoon style." }
+        ]
+      },
+      config: {
+        imageConfig: { aspectRatio: "3:4", imageSize: "1K" }
+      }
+    });
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
+    }
+  } catch (e) { console.error(e); }
+  return undefined;
+};
+
 export const generateAudioAI = async (text: string): Promise<string | undefined> => {
   try {
     const response = await ai.models.generateContent({
@@ -81,7 +124,6 @@ export const generateAudioAI = async (text: string): Promise<string | undefined>
 };
 
 export const generateParentTipAI = async (child: Child): Promise<string> => {
-  // Fix: Property 'difficultySubject' does not exist on type 'Child'. Did you mean 'difficultySubjects'?
   const subjectsStr = child.difficultySubjects?.length > 0 ? child.difficultySubjects.join(', ') : 'aprendizado geral';
   const prompt = `Como especialista em pedagogia, dê uma dica curta (máximo 200 caracteres) e prática para um pai ajudar seu filho de ${child.age} anos que tem dificuldade em ${subjectsStr}. Seja encorajador.`;
   try {
