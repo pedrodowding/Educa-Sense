@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -142,6 +143,7 @@ const App: React.FC = () => {
           <BottomNavWrapper isAuthenticated={auth.isAuthenticated} role={auth.user?.role} />
         </div>
       </div>
+      <Analytics />
     </HashRouter>
   );
 };
