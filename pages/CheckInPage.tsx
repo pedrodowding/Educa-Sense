@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Child, DailyCheckIn } from '../types';
+import { useSelectedChild } from '../contexts/SelectedChildContext';
+import { useDailyProgress } from '../hooks/useDailyProgress';
 
 interface Props {
   children: Child[];
@@ -10,12 +12,19 @@ interface Props {
 
 const CheckInPage: React.FC<Props> = ({ children, onSave }) => {
   const navigate = useNavigate();
-  const [selectedChild, setSelectedChild] = useState<Child>(children[0]);
+  const location = useLocation();
+  const { selectedChild, setSelectedChild } = useSelectedChild();
   const [mood, setMood] = useState<DailyCheckIn['mood']>('feliz');
   const [energy, setEnergy] = useState(3);
   const [sleep, setSleep] = useState(3);
   const [school, setSchool] = useState('Equilibrado');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!selectedChild && children.length > 0) {
+      setSelectedChild(children[0]);
+    }
+  }, [children, selectedChild]);
 
   const moods: { key: DailyCheckIn['mood'], label: string, emoji: string }[] = [
     { key: 'feliz', label: 'Feliz', emoji: '😊' },
@@ -25,7 +34,11 @@ const CheckInPage: React.FC<Props> = ({ children, onSave }) => {
     { key: 'bravo', label: 'Bravo', emoji: '😠' }
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!selectedChild) {
+      alert('Nenhum estudante selecionado.');
+      return;
+    }
     setSaving(true);
     const newCheckIn: DailyCheckIn = {
       id: Math.random().toString(36).substr(2, 9),
@@ -38,11 +51,44 @@ const CheckInPage: React.FC<Props> = ({ children, onSave }) => {
       event: "Check-in diário"
     };
     
-    setTimeout(() => {
-      onSave(newCheckIn);
-      navigate('/rotina');
-    }, 800);
+    // Save to global history
+    await onSave(newCheckIn);
+
+    // Refresh daily progress if available
+    // No need to manually update local storage anymore
+    // O hook useDailyProgress irá atualizar automaticamente ao detectar a mudança no banco (via refresh ou polling)
+    // Mas aqui não temos acesso direto ao refresh do hook, a menos que passemos via props ou usemos contexto.
+    // Como CheckInPage é uma página independente, o usuário provavelmente voltará para o Dashboard ou Rotina.
+    // Ao voltar, os componentes dessas páginas farão o fetch atualizado.
+
+    // Navigate back
+    const params = new URLSearchParams(location.search);
+    const from = params.get('from');
+    navigate(from ? `/rotina?from=${from}` : '/rotina');
   };
+
+  if (!selectedChild) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-primary/5">
+        <h2 className="text-2xl font-black mb-3">Nenhum estudante encontrado</h2>
+        <p className="text-text-sub text-sm font-bold mb-10">Cadastre um estudante para fazer check-in.</p>
+        <div className="w-full max-w-sm space-y-3">
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-full h-16 bg-primary text-black font-black text-lg rounded-2xl shadow-glow active:scale-95 transition-all"
+          >
+            Ir para Configurações
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full h-14 bg-white/70 dark:bg-gray-800 font-black rounded-2xl active:scale-95 transition-all"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark">
@@ -63,7 +109,7 @@ const CheckInPage: React.FC<Props> = ({ children, onSave }) => {
                 <button 
                   key={c.id}
                   onClick={() => setSelectedChild(c)}
-                  className={`flex flex-col items-center gap-2 transition-all ${selectedChild.id === c.id ? 'scale-110' : 'opacity-40 grayscale'}`}
+                  className={`flex flex-col items-center gap-2 transition-all ${selectedChild?.id === c.id ? 'scale-110' : 'opacity-40 grayscale'}`}
                 >
                    <img src={c.avatar} alt={c.name} className="size-14 rounded-2xl border-2 border-primary" />
                    <span className="text-[10px] font-black">{c.name}</span>

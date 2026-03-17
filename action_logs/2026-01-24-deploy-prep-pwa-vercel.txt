@@ -1,0 +1,25 @@
+Action Log: 2026-01-24 - Deploy Preparation and PWA Fix
+
+1. Mobile Layout Fix:
+   - Updated App.tsx and BottomNavWrapper.tsx to hide bottom navigation on /exercicio-facil/criar to prevent overlap with the "Gerar Exercício" button.
+
+2. PWA Configuration:
+   - Created public/manifest.json for PWA support.
+   - Updated index.html with PWA meta tags.
+   - Fixed missing logo reference by pointing manifest and index.html to existing public/icons/icon-192x192.png instead of missing logo.png.
+
+3. Vercel Deployment Prep:
+   - Verified vercel.json for SPA and API rewrites.
+   - Verified api/index.js exists and correctly imports server/index.js.
+   - Verified server/index.js exports app and uses environment variables.
+   - Verified package.json build script.
+   - Attempted CLI deployment but encountered permission restrictions in sandbox.
+
+4. Next Steps:
+   - User to run 'npx vercel deploy --prod' manually.
+   - User to set environment variables in Vercel dashboard:
+     - VITE_SUPABASE_URL
+     - VITE_SUPABASE_ANON_KEY
+     - VITE_GEMINI_API_KEY
+     - FRONTEND_URL
+     - MP_ACCESS_TOKEN

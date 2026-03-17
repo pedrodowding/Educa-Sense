@@ -1,0 +1,36 @@
+# Correção Global de Renderização e Formato de Exercícios
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Resumo
+Foi implementada uma correção estrutural para garantir que o formato do exercício selecionado pelo usuário (Múltipla Escolha, Dissertativa, Mista, Leitura Guiada) seja respeitado em todo o fluxo: Criação -> Geração IA -> Persistência -> Renderização.
+
+## Alterações Realizadas
+
+### 1. Criação (`CreateExercisePage.tsx`)
+- Substituído `questionMode` por `selectedFormat` com as opções explícitas: `multipla`, `dissertativa`, `mista`, `leitura_guiada`.
+- O formato escolhido é passado para o serviço de IA e salvo no objeto `Exercise` (campos `selectedFormat` e `type`).
+- Logs de debug adicionados.
+
+### 2. Serviço de IA (`exerciseService.ts`)
+- **`generateExercise`**: Agora aceita `format`.
+  - Se `format === 'leitura_guiada'`, delega para `generateReadingExercise` e força o tipo correto.
+  - Se `format` for quiz (multipla, etc.), instrui o modelo a retornar um campo `type` no nível raiz do JSON igual ao solicitado.
+- **Schema Validation**: Atualizado o schema JSON para exigir o campo `type` no topo, garantindo que a IA saiba explicitamente o que está gerando.
+- **Repair**: Adicionada lógica de correção automática se o modelo retornar o tipo errado.
+
+### 3. Renderização (`ResultPage.tsx`)
+- Implementado um **Dispatcher** no início do componente.
+- Se `exercise.type` for `multipla`, `dissertativa` ou `mista`, o usuário é **redirecionado automaticamente** para a rota `/exercicio-facil/quiz/:id`, que possui o renderer correto para quizzes.
+- Se `exercise.type` for `leitura_guiada` (ou indefinido com estrutura de texto), mantém o renderizador de Leitura Guiada.
+- Adicionados logs de debug para inspecionar o exercício carregado.
+
+### 4. Tipagem (`types.ts`)
+- Atualizada interface `Exercise` para incluir `selectedFormat` e `type`.
+
+## Teste e Validação
+- **Cenário Quiz:** Ao criar "Geografia - Múltipla", a IA gera type="multipla", `ResultPage` detecta e redireciona para o Quiz Player.
+- **Cenário Leitura:** Ao criar "Português - Leitura Guiada", a IA gera type="leitura_guiada", `ResultPage` renderiza o player de leitura.
+
+Essa correção elimina o bug onde tudo era renderizado como Leitura Guiada.

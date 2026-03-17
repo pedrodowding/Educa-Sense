@@ -1,0 +1,10 @@
+Problema: Erro 'FunctionsHttpError' ao chamar mp-create-checkout.
+Diagnóstico: A Edge Function retornava 400 com erro do Mercado Pago: "auto_return invalid. back_url.success must be defined".
+Causa: A função remota estava configurada para retorno automático mas sem URLs de retorno definidas, e não aceitava override.
+Solução:
+1. Recriada a função localmente em `supabase/functions/mp-create-checkout/index.ts` com suporte a `backUrls` no payload.
+2. Atualizado `mercadoPagoProvider.ts` para enviar `backUrls` dinâmicas.
+
+Próximos Passos:
+1. Usuário precisa fazer deploy da função: `npx supabase functions deploy mp-create-checkout`.
+2. Configurar env var `MERCADO_PAGO_ACCESS_TOKEN` no Supabase.

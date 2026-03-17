@@ -1,0 +1,22 @@
+Data: 2025-12-26
+
+O que foi realizado
+- Painel admin: filtros passaram a funcionar também em API e Logs (busca por operação/model e action/entity_type).
+- Painel admin: conversão de datas dos filtros (datetime-local) para ISO antes de consultar o banco, evitando inconsistências de timezone.
+- Painel admin: ajuste de redirecionamento quando usuário não é autorizado (sem cair em /dashboard → /login para admins).
+- Automação: adicionados scripts de verificação no package.json:
+  - npm run typecheck (tsc --noEmit)
+  - npm run check (typecheck + build)
+
+Arquivos alterados
+- pages/admin/adminData.ts
+- pages/admin/AdminExclusivePage.tsx
+- package.json
+
+Validação executada
+- npm run check (typecheck + build) OK
+
+Possíveis próximos passos
+- Consolidar o modelo de “backup diário automático”: hoje ele é gerado sob demanda no painel (depende do admin abrir o painel e informar a chave). Se precisar de 100% automático no servidor, migrar para um job no Supabase (cron/edge function) com segredo gerenciado fora do cliente.
+- Tipar melhor as estruturas do admin (substituir any[] por tipos de adminData.ts) para reduzir riscos de regressões.
+- Se necessário, expor um “atalho” de navegação para admins (ex.: no Perfil) com gate por role.

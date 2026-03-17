@@ -1,0 +1,44 @@
+# Relatório de Ação: Sprint 7.1 - Correção de Envio de Mensagens
+Data: 2026-02-05
+Autor: Trae AI
+
+## Resumo
+Correção e refinamento do envio de mensagens rápidas no perfil do amigo, garantindo validação de segurança (amizade ativa, configurações de ambos os lados) e feedback visual claro para a criança.
+
+## Alterações Realizadas
+
+### 1. Backend (RPC)
+- **Arquivo**: `supabase/migrations/20260205140000_sprint7_1_fix_messages.sql`
+- **Mudança**: Atualizada função `rpc_send_predefined_message` para:
+  - Verificar se `social_interactions_enabled` é true para **ambos** (remetente e destinatário).
+  - Validar se existe amizade ativa na tabela `friendships`.
+  - Manter limite diário de 5 mensagens.
+  - Retornar erros explícitos (`SOCIAL_DISABLED_RECEIVER`, `NOT_FRIENDS`).
+
+### 2. Frontend Hook
+- **Arquivo**: `hooks/useSocialInteractions.ts`
+- **Mudança**:
+  - Adicionado estado `isSending` e `error`.
+  - Função `sendQuickMessage` agora trata erros específicos do RPC e define mensagens amigáveis no estado `error`.
+  - Mantido `sendMessage` como alias para compatibilidade, mas a lógica foi unificada.
+
+### 3. Frontend UI
+- **Arquivo**: `pages/student/friends/FriendProfilePage.tsx`
+- **Mudança**:
+  - Integração com `sendQuickMessage` e `isSending`.
+  - Botões desabilitados visualmente durante envio.
+  - Feedback visual (Toast) com ícones e cores diferentes para sucesso ("Mensagem enviada 😊") e erro ("Não foi possível enviar agora").
+  - Exibição de mensagem de erro específica abaixo dos botões se houver falha de validação.
+
+## Validação
+- **Typecheck**: `npm run typecheck` executado com sucesso.
+- **Critérios de Aceite**:
+  - [x] Validação de amizade e configurações sociais no backend.
+  - [x] Feedback visual imediato (Toast + Estado de loading).
+  - [x] Tratamento de erros não silencioso.
+  - [x] Código limpo e seguro.
+
+## Arquivos Impactados
+- `supabase/migrations/20260205140000_sprint7_1_fix_messages.sql`
+- `hooks/useSocialInteractions.ts`
+- `pages/student/friends/FriendProfilePage.tsx`

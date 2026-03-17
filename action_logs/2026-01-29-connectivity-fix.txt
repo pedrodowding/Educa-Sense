@@ -1,0 +1,13 @@
+Action Log: 2026-01-29 - Connectivity Check Fix
+
+1. Issue
+   - Console reported `net::ERR_ABORTED` when accessing `https://.../rest/v1/` in `ConnectivityBanner.tsx`.
+   - The use of `HEAD` method might be blocked by some network configurations or browser extensions, causing the request to abort and falsely trigger the offline banner.
+
+2. Fix
+   - Modified `components/ConnectivityBanner.tsx` to use `GET` method instead of `HEAD`.
+   - Updated comments to reflect that 404 or 200 responses are both considered "connected".
+
+3. Verification
+   - `npm run typecheck`: PASSED.
+   - Code logic ensures `fetch` only throws on network errors (or aborts), which correctly sets `isOffline(true)`.

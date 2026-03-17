@@ -1,0 +1,8 @@
+Resumo:
+- SelectedChildContext agora reidrata por guardianId quando student.id/guardianId mudam.
+- Modo code não inicia hydration sem student disponível e evita corrida de timing.
+- Logs adicionados para ordem de validação no console.
+- Validação com npm run check concluída.
+
+Próximos passos:
+- Validar no navegador o fluxo por código sem reload e confirmar a ordem dos logs.

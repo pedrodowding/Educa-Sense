@@ -1,0 +1,23 @@
+Action Log: 2026-01-24 - Fix Mobile Layout and PWA Icons
+
+1. Mobile Layout Fix (Bottom Navigation Overlap):
+   - Issue: The "Gerar Exercício" button on '/exercicio-facil/criar' was covered by the bottom navigation bar.
+   - Root Cause: Strict path matching failed if there was a trailing slash or subtle path variation.
+   - Fix: Updated `App.tsx` and `BottomNavWrapper.tsx` to use `normalizePath` which strips trailing slashes, ensuring consistent matching for `hidePaths`.
+
+2. PWA Icon Fix:
+   - Issue: App icon (logo) was not loading on home screen or as favicon, showing generic icon instead.
+   - Root Cause: Potential path resolution issues with nested `icons/` folder or iOS/browser preferring root files.
+   - Fix:
+     - Copied `public/icons/icon-192x192.png` to `public/logo.png`, `public/apple-touch-icon.png`, and `public/favicon.png`.
+     - Updated `index.html` to reference these root files (`/favicon.png`, `/apple-touch-icon.png`).
+     - Updated `public/manifest.json` to use `logo.png` (root) and `icons/icon-512x512.png` (relative path) to ensure compatibility across different install contexts.
+
+3. Verification:
+   - File copies confirmed.
+   - Code logic updated for path normalization.
+   - HTML and Manifest references updated to point to existing files.
+
+4. Next Steps:
+   - User to redeploy to Vercel (`npx vercel deploy --prod`) to see changes.
+   - Clear browser cache/reinstall PWA to force icon update.

@@ -1,0 +1,9 @@
+Resumo:
+- SelectedChildContext reidrata children via guardianId quando sessionSource=code.
+- selectedChild é definido pelo student.id e logs adicionados para validação.
+- Provider order ajustado para StudentProvider envolver SelectedChildProvider.
+- StudentHeader com fallback seguro para primeiro nome.
+- Validação com npm run check concluída.
+
+Próximos passos:
+- Validar no navegador os logs de SelectedChildContext e StudentContext no fluxo por código.

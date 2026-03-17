@@ -1,0 +1,23 @@
+Data: 2025-12-26
+
+O que foi feito
+- Corrigida a geração de exercícios para sempre respeitar o modo selecionado (multiple/open/mixed) e limitar exatamente a quantidade de questões solicitada.
+- Adicionada validação e "reparo" automático: quando a IA retorna JSON com formato inválido, quantidade errada ou modo incorreto, o sistema faz uma segunda tentativa pedindo correção do JSON.
+- Unificada a normalização/parsing de JSON usando utilitários reutilizáveis (removendo duplicação local no serviço de exercícios).
+- Tornado o parse de JSON mais resiliente (suporta respostas com ```json ... ```).
+
+Arquivos alterados
+- services/ai/exerciseService.ts
+
+Como validar
+- npm run check
+
+Possíveis próximos passos
+- Aplicar a mesma validação/reparo também na geração de leitura (história) se observar inconsistências de contagem/modo.
+- Ajustar o schema e/ou prompts para reduzir casos de "options" com tamanho diferente de 4.
+- Adicionar telemetria específica (ex: contagem de reparos) no painel de admin para monitorar aderência do modelo.
+
+Análise (escalabilidade/manutenibilidade)
+A mudança centraliza regras de qualidade (quantidade e modo de questões) em utilitários e aplica uma barreira determinística pós-geração, reduzindo dependência do comportamento do modelo e evitando explosões de conteúdo (ex: 41+ questões). Isso melhora previsibilidade, custo (menos render/armazenamento) e evita que dados fora do contrato cheguem às telas e ao histórico.
+
+Para manter o sistema escalável, o fluxo agora tem no máximo 1 retry por geração, o que limita impacto em custo/latência em produção. Como melhoria futura, dá para registrar métricas de "needsRepair" por operação/tema e ajustar prompts/schemas com base nos padrões de falha, além de aplicar uma estratégia de "degradação controlada" (mensagens mais específicas no UI) caso a segunda tentativa também falhe.

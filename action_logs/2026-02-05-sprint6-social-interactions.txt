@@ -1,0 +1,45 @@
+# Action Log - Sprint 6: Guided Social Interactions
+Date: 2026-02-05
+Description: Implementation of safe, guided social interactions between friends (Reactions, Pre-defined Messages, Cooperative Challenges).
+
+## 1. Database Schema & Logic
+- **File**: `supabase/migrations/20260205000000_sprint6_social_interactions.sql`
+- **Changes**:
+  - Added `social_interactions_enabled` column to `children` table (Parent Control).
+  - Created `child_reactions` table to store reactions to events.
+  - Created `child_challenges` table to manage cooperative challenges.
+  - **Trigger Logic**: Implemented `tr_check_social_milestones` on `activity_completions`.
+    - Auto-detects when a child completes 3 daily activities and inserts a `daily_plan_completed` event.
+    - Auto-completes pending `complete_daily_plan` challenges when this event occurs.
+  - **RPCs**:
+    - `rpc_toggle_social_interactions`: Parent control switch.
+    - `rpc_send_reaction`: Validates toggle and inserts reaction (Max 1 per event via Unique Constraint).
+    - `rpc_send_predefined_message`: Enforces 5/day limit via `friends_audit_log`.
+    - `rpc_create_challenge`: Ensures only 1 pending challenge per pair.
+    - `rpc_get_friend_activities`: Fetches recent reactable events (Plan completions, Badges).
+
+## 2. Frontend Logic
+- **Types**: Updated `types.ts` with `ChildReaction`, `ChildChallenge`, and `socialInteractionsEnabled` in `Child`.
+- **Hooks**:
+  - Updated `useChildren.ts` to handle the new parent control toggle.
+  - Created `hooks/useSocialInteractions.ts` to encapsulate all Sprint 6 RPC calls and state management.
+
+## 3. UI Implementation
+- **Settings Page**:
+  - Added "Interações Sociais" toggle under the Friends section.
+  - Allows parents to disable interactions while keeping friendship connections.
+- **Friend Profile Page**:
+  - Added "Mandar Mensagem" section with pre-defined buttons ("Boa!", "Parabéns!", etc.).
+  - Added "Desafiar" section (Single cooperative challenge: "Completar Plano de Hoje").
+  - Added "Atividades Recentes" feed showing friend's milestones.
+  - Implemented Reaction buttons (👍, ⭐, 🚀) on recent activities.
+  - All features respect the `socialInteractionsEnabled` flag.
+
+## 4. Safety & Compliance
+- **No Chat**: No text input fields were added. All communication is button-based.
+- **Limits**: Daily message limits and single reaction constraints are enforced at Database level.
+- **Auditing**: All actions (`reaction_sent`, `challenge_sent`, etc.) are logged to `friends_audit_log`.
+
+## 5. Verification
+- `npm run typecheck` passed successfully.
+- Migration file is ready for deployment.

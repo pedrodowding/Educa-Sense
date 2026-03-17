@@ -1,7 +1,25 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Child, Exercise } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Badge, Child, Exercise } from '../types';
+import { supabase, setChildAccessCodeHeader } from '../services/supabase';
+import { buildDeviceInfo, getOrCreateDeviceId } from '../services/device';
+import { fetchChildBadges } from '../services/gamificationService';
+import { fetchChildAlbum, ChildAlbumItem } from '../services/albumService';
+import { useStudent } from '../contexts/StudentContext';
+import { getStudentSession, clearStudentSession } from '../services/studentSession';
+import { useFamilyChildren } from '../contexts/FamilyChildrenContext';
+
+// Components
+import { StudentHeader } from './student/components/StudentHeader';
+import { TodayPlanCard } from './student/components/TodayPlanCard';
+import { WeeklyGoalsCard } from './student/components/WeeklyGoalsCard';
+import { FriendsCard } from './student/components/FriendsCard';
+import { StoryBookCard } from './student/components/StoryBookCard';
+import { GameHubCard } from './student/components/GameHubCard';
+import { TodayActivityFeed } from './student/components/TodayActivityFeed';
+import { BadgesSection } from './student/components/BadgesSection';
+import { NextMissionsList } from './student/components/NextMissionsList';
 
 interface Props {
   children: Child[];
@@ -11,21 +29,110 @@ interface Props {
 
 const StudentDashboardPage: React.FC<Props> = ({ children, history, onUpdateChild }) => {
   const navigate = useNavigate();
-  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const location = useLocation();
+  const queryChildId = useMemo(() => new URLSearchParams(location.search).get('child'), [location.search]);
+  const { familyChildren } = useFamilyChildren();
+  const resolvedChildren = familyChildren.length > 0 ? familyChildren : children;
+  const [selectedChild, setSelectedChild] = useState<Child | null>(() => {
+    const stateChild = (location.state as any)?.child as Child | undefined;
+    if (stateChild) return stateChild;
+    if (!queryChildId) {
+        // Tenta ler do localStorage (sessão de código)
+        const session = getStudentSession();
+        if (session && session.childId) {
+            // Retorna um objeto parcial temporário até carregar via contexto/RPC
+            // O useEffect abaixo vai lidar com o carregamento real se necessário
+            return { id: session.childId } as Child;
+        }
+        return null;
+    }
+    return resolvedChildren.find(c => c.id === queryChildId) || null;
+  });
+  
+  // Integração com StudentContext (para login via código)
+  const { student: contextStudent, loading: studentLoading } = useStudent();
 
-  const badges = [
-    { id: 'math-master', icon: 'calculate', label: 'Gênio dos Números', color: 'bg-blue-400' },
-    { id: 'reader-star', icon: 'menu_book', label: 'Estrela da Leitura', color: 'bg-green-400' },
-    { id: 'artist', icon: 'palette', label: 'Pequeno Da Vinci', color: 'bg-purple-400' },
-    { id: 'english', icon: 'language', label: 'Poliglota Mirim', color: 'bg-orange-400' }
-  ];
+  useEffect(() => {
+      // Se tivermos um aluno vindo do contexto (login por código), usa ele
+      if (contextStudent && !queryChildId) {
+          setSelectedChild(contextStudent);
+      }
+  }, [contextStudent, queryChildId]);
+
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [albumItems, setAlbumItems] = useState<ChildAlbumItem[]>([]);
+
+  useEffect(() => {
+    if (!queryChildId) return;
+    if (selectedChild) return;
+    const found = resolvedChildren.find(c => c.id === queryChildId) || null;
+    if (found) setSelectedChild(found);
+  }, [resolvedChildren, queryChildId, selectedChild]);
+
+  // Carregar badges e album do aluno
+  useEffect(() => {
+    if (!selectedChild) return;
+    fetchChildBadges(selectedChild.id).then(setBadges);
+    fetchChildAlbum(selectedChild.id).then(setAlbumItems);
+  }, [selectedChild?.id]);
+
+  useEffect(() => {
+    if (!selectedChild) return;
+    const accessCode = sessionStorage.getItem('educasense_access_code');
+    
+    // Set header for RLS (Sprint 8.1)
+    if (accessCode) {
+      setChildAccessCodeHeader(accessCode);
+    }
+
+    if (!accessCode) return;
+
+    const deviceId = getOrCreateDeviceId();
+
+    let cancelled = false;
+    const touch = async () => {
+      if (cancelled) return;
+      try {
+        await supabase.rpc('register_child_device', {
+          p_access_code: accessCode,
+          p_device_id: deviceId,
+          p_info: buildDeviceInfo()
+        });
+      } catch {
+        return;
+      }
+    };
+
+    touch();
+    const interval = window.setInterval(touch, 60_000 * 5);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [selectedChild]);
+
+  if (resolvedChildren.length === 0 && !selectedChild) {
+    return (
+      <div className="flex flex-col min-h-screen bg-primary/5 p-8 items-center justify-center text-center">
+        <h1 className="text-3xl font-black mb-4">Modo Aluno</h1>
+        <p className="text-sm font-bold text-text-sub mb-10">Digite o código que seus responsáveis passaram.</p>
+        <button
+          onClick={() => navigate('/login')}
+          className="w-full h-16 bg-primary text-black font-black text-lg rounded-2xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-3 max-w-sm"
+        >
+          Entrar com Código
+          <span className="material-symbols-outlined">arrow_forward</span>
+        </button>
+      </div>
+    );
+  }
 
   if (!selectedChild) {
     return (
       <div className="flex flex-col min-h-screen bg-primary/5 p-8 items-center justify-center text-center">
         <h1 className="text-3xl font-black mb-10">Quem vai estudar <br/><span className="text-primary italic">brincando</span> hoje?</h1>
         <div className="grid grid-cols-2 gap-6 w-full max-w-sm">
-          {children.map(child => (
+          {resolvedChildren.map(child => (
             <button 
               key={child.id}
               onClick={() => setSelectedChild(child)}
@@ -48,105 +155,53 @@ const StudentDashboardPage: React.FC<Props> = ({ children, history, onUpdateChil
     );
   }
 
-  const childExercises = history.filter(ex => ex.childName === selectedChild.name);
-  const completedCount = childExercises.filter(e => e.completed).length;
+  const childExercises = history.filter(ex => ex.childId === selectedChild.id);
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark">
-      <header className="p-6 flex items-center justify-between bg-primary/10 rounded-b-[48px] mb-8 shadow-sm">
-        <div className="flex items-center gap-4">
-           <div className="size-16 rounded-3xl bg-white border-2 border-primary overflow-hidden shadow-lg">
-              <img src={selectedChild.avatar} alt={selectedChild.name} className="w-full h-full object-cover" />
-           </div>
-           <div>
-              <h1 className="text-2xl font-black leading-none">Oi, {selectedChild.name}!</h1>
-              <div className="flex items-center gap-3 mt-1">
-                 <div className="flex items-center gap-1 bg-white/50 px-2 py-0.5 rounded-full">
-                    <span className="material-symbols-outlined text-orange-500 text-xs filled">local_fire_department</span>
-                    <span className="text-[10px] font-black">{selectedChild.streak} Dias</span>
-                 </div>
-                 <div className="flex items-center gap-1 bg-white/50 px-2 py-0.5 rounded-full">
-                    <span className="material-symbols-outlined text-yellow-500 text-xs filled">stars</span>
-                    <span className="text-[10px] font-black">{selectedChild.stars}</span>
-                 </div>
-              </div>
-           </div>
+    <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark pb-10">
+      
+      <StudentHeader 
+        child={selectedChild} 
+        onLogout={() => {
+            const hadStudentSession = !!getStudentSession()?.childId;
+            clearStudentSession();
+            setChildAccessCodeHeader(null); // Clear header
+            
+            // Se for login por código, volta pro login
+            if (!queryChildId && (hadStudentSession || resolvedChildren.length === 0)) {
+              navigate('/login');
+              return;
+            }
+            setSelectedChild(null);
+        }}
+      />
+
+      <main>
+        {/* 1. Missão de Hoje (CTA Principal e Narrativa) */}
+        <TodayPlanCard child={selectedChild} />
+
+        {/* 2. Livro de Histórias (Sprint 8A) */}
+        <div className="px-6 mb-2">
+           <StoryBookCard child={selectedChild} />
+           <GameHubCard child={selectedChild} />
         </div>
-        <button onClick={() => setSelectedChild(null)} className="size-12 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-md text-gray-400">
-           <span className="material-symbols-outlined">logout</span>
-        </button>
-      </header>
 
-      <main className="px-6 space-y-8 flex-1 pb-10">
-        <section className="bg-gradient-to-br from-primary to-primary-dark rounded-[40px] p-6 text-black shadow-xl relative overflow-hidden active:scale-95 transition-transform cursor-pointer">
-           <div className="relative z-10 space-y-2">
-              <h3 className="text-[10px] font-black uppercase tracking-widest opacity-70">Nível do Explorador</h3>
-              <h2 className="text-3xl font-black">{Math.floor(selectedChild.xp / 100) + 1}</h2>
-              <div className="h-2 w-full bg-black/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-white" style={{ width: `${selectedChild.xp % 100}%` }}></div>
-              </div>
-              <p className="text-[10px] font-bold">Faltam {100 - (selectedChild.xp % 100)} XP para o próximo nível!</p>
-           </div>
-           <span className="material-symbols-outlined absolute -right-6 -bottom-6 text-black/10 text-[180px] rotate-12">rocket_launch</span>
-        </section>
+        {/* 3. Amigos (Microfeedback) */}
+        <div className="px-6 mb-8">
+           <FriendsCard child={selectedChild} />
+        </div>
 
-        <section className="space-y-4">
-           <h3 className="text-xl font-black flex items-center gap-2">
-              <span className="material-symbols-outlined text-yellow-500 filled">workspace_premium</span>
-              Medalhas
-           </h3>
-           <div className="flex gap-4 overflow-x-auto no-scrollbar py-2">
-              {badges.map(badge => {
-                const isUnlocked = selectedChild.xp > 50; 
-                return (
-                  <div key={badge.id} className={`flex flex-col items-center gap-2 shrink-0 p-4 rounded-3xl border-2 transition-all ${isUnlocked ? 'bg-white border-primary shadow-soft' : 'bg-gray-50 border-transparent opacity-40'}`}>
-                     <div className={`size-14 rounded-2xl flex items-center justify-center text-white shadow-md ${isUnlocked ? badge.color : 'bg-gray-300'}`}>
-                        <span className="material-symbols-outlined text-2xl">{badge.icon}</span>
-                     </div>
-                     <span className="text-[10px] font-black uppercase text-center w-20 leading-tight">{badge.label}</span>
-                  </div>
-                );
-              })}
-           </div>
-        </section>
+        {/* 3. Medalhas (Proximidade) */}
+        <BadgesSection badges={badges} />
 
-        <section className="space-y-4">
-          <h3 className="text-xl font-black flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">explore</span>
-            Próximas Missões
-          </h3>
-          
-          <div className="space-y-4">
-            {childExercises.length > 0 ? childExercises.filter(e => !e.completed).map(ex => (
-              <button 
-                key={ex.id}
-                onClick={() => navigate(`/exercicio-facil/quiz/${ex.id}`)}
-                className="w-full text-left bg-white dark:bg-surface-dark p-5 rounded-[40px] border-4 border-gray-50 dark:border-gray-800 shadow-soft flex items-center gap-4 active:scale-95 transition-all group"
-              >
-                <div className={`size-14 rounded-[24px] flex items-center justify-center text-white shadow-lg ${
-                  ex.subject === 'Matemática' ? 'bg-blue-400' : 'bg-green-400'
-                }`}>
-                  <span className="material-symbols-outlined text-2xl">
-                    {ex.subject === 'Matemática' ? 'calculate' : 'menu_book'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-black uppercase text-primary tracking-widest">{ex.subject} • +15 XP</p>
-                  <h4 className="font-black text-lg group-hover:text-primary transition-colors">{ex.title}</h4>
-                </div>
-                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                   <span className="material-symbols-outlined">play_arrow</span>
-                </div>
-              </button>
-            )) : (
-              <div className="p-10 text-center bg-gray-50 dark:bg-surface-dark rounded-[40px] border-4 border-dashed border-gray-100 dark:border-gray-800">
-                <span className="material-symbols-outlined text-5xl text-gray-200 mb-4 animate-pulse">check_circle</span>
-                <p className="text-text-sub font-bold italic px-4 leading-relaxed">Missões do dia concluídas! Que tal pedir mais uma para o seu responsável?</p>
-              </div>
-            )}
-          </div>
-        </section>
+        {/* 4. Histórico Recente e Próximos Passos */}
+        <TodayActivityFeed childId={selectedChild.id} />
+        <NextMissionsList exercises={childExercises} />
+
+        {/* 5. Metas da Semana (Secundário) */}
+        <WeeklyGoalsCard childId={selectedChild.id} />
       </main>
+
     </div>
   );
 };

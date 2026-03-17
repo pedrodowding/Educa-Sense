@@ -1,0 +1,50 @@
+# Action Log: Social Security and Limits (Sprint 4)
+
+## Contexto
+Implementação da Sprint 4, focada em segurança social, limites de abuso (anti-spam) e moderação parental. O objetivo é proteger as crianças de interações indesejadas e garantir que os pais tenham controle total sobre bloqueios.
+
+## Mudanças Realizadas
+
+### Backend (Migration & RPCs)
+*   **Arquivo**: `supabase/migrations/20260204140000_sprint4_security.sql`
+*   **Tabela**: `child_blocks` criada para armazenar bloqueios entre usuários (blocker, blocked, reason).
+*   **RPCs**:
+    *   `rpc_block_child`: Permite que um aluno (ou pai) bloqueie outro. Remove amizades e cancela convites automaticamente.
+    *   `rpc_unblock_child`: Permite que o pai desbloqueie um usuário.
+    *   `rpc_get_child_blocks`: Lista usuários bloqueados para o painel do pai.
+    *   `rpc_send_friend_request_by_code` (Atualizada):
+        *   **Anti-spam**: Implementados limites de 5 convites/dia e 20/mês.
+        *   **Verificação de Bloqueio**: Impede envio se houver bloqueio de qualquer lado.
+
+### Frontend (Hooks & Types)
+*   **`types.ts`**: Adicionada interface `ChildBlock`.
+*   **`hooks/useFriends.ts`**:
+    *   Atualizado `useFriendRequests` com função `blockUser`.
+    *   `useParentPendingFriendRequests` mantido estável.
+
+### Frontend (UI Components)
+*   **`FriendProfilePage.tsx`**:
+    *   Adicionado botão "Bloquear Usuário" no perfil do amigo.
+    *   Modal de confirmação com aviso sobre as consequências (fim da amizade).
+    *   Feedback visual (Toast) ao bloquear.
+*   **`SettingsPage.tsx`**:
+    *   Nova seção "Segurança Social (Bloqueios)".
+    *   Lista usuários bloqueados pelo filho.
+    *   Permite ao responsável desbloquear usuários.
+
+## Verificação
+*   **Typecheck**: Executado com sucesso (`npm run typecheck`).
+*   **Requisitos da Sprint**:
+    *   [x] Tabela `child_blocks` e RLS.
+    *   [x] Limites de convite (Anti-spam).
+    *   [x] Bloqueio remove amizade e convites.
+    *   [x] UI de bloqueio para o aluno.
+    *   [x] UI de gestão de bloqueios para o pai.
+    *   [x] Auditoria de bloqueios e spam.
+
+## Próximos Passos
+*   Aplicar a migration no banco de dados Supabase.
+*   Validar cenários de borda:
+    *   Tentar enviar 6 convites no mesmo dia.
+    *   Tentar convidar alguém que te bloqueou.
+    *   Verificar se o bloqueio realmente remove a amizade da lista.

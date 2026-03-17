@@ -13,7 +13,13 @@ const HomePage: React.FC = () => {
           <p className="text-xs font-bold text-text-sub uppercase tracking-[3px] mt-1">Plataforma Educacional</p>
         </div>
         <div className="size-14 rounded-2xl bg-gray-200 overflow-hidden border-2 border-primary rotate-3">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Parent" alt="Avatar" />
+          <img 
+            src="https://api.dicebear.com/9.x/avataaars/svg?seed=Parent" 
+            alt="Avatar" 
+            width="56"
+            height="56"
+            className="w-full h-full object-cover"
+          />
         </div>
       </header>
 
@@ -52,6 +58,8 @@ const HomePage: React.FC = () => {
                 <img 
                   src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800&auto=format&fit=crop" 
                   alt="Exercício Fácil" 
+                  width="800"
+                  height="600"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>

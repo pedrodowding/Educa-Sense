@@ -1,0 +1,19 @@
+Data: 2025-12-26
+
+O que foi feito
+- Ajustada a resolução da chave do Gemini para funcionar corretamente no browser com Vite.
+- Em vez de tentar ler via globalThis.process.env (não substituível pelo define), agora usamos process.env.GEMINI_API_KEY / process.env.API_KEY (que o Vite substitui via define no build).
+
+Motivação
+- O projeto já injeta GEMINI_API_KEY em build-time via vite.config.ts, mas o código não estava acessando o mesmo caminho. Resultado: "GEMINI_API_KEY não configurada" e falha ao gerar exercícios.
+
+Arquivo alterado
+- services/geminiService.ts
+
+Validação
+- build: OK (vite build)
+- typecheck: OK (tsc --noEmit)
+
+Próximos passos sugeridos
+- Se quiser padronizar, mover tudo para VITE_GEMINI_API_KEY e remover o fallback process.env.*.
+- Melhorar mensagens de erro na UI quando a chave não estiver configurada.

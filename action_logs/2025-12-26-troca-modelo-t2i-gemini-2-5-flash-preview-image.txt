@@ -1,0 +1,17 @@
+Data: 2025-12-26
+Assunto: Correção do modelo T2I e fallback de geração de imagem
+
+O que foi feito
+- O modelo padrão de T2I foi ajustado para "gemini-2.5-flash-image" (nome válido na API).
+- A geração de página de colorir (T2I) passou a usar IMAGE_MODEL_T2I (configurável por env) e tentar modelos alternativos quando houver erro 404/NOT_FOUND.
+
+Arquivos alterados
+- lib/aiModels.ts
+- services/ai/coloringService.ts
+
+Configuração
+- Override via env: VITE_GEMINI_IMAGE_MODEL_T2I
+
+Possíveis próximos passos
+- Revisar o fluxo de I2I (transformação de foto) para também usar a constante de modelo (IMAGE_MODEL_I2I), mantendo consistência.
+- Adicionar um seletor de modelo por ambiente (dev/test/prod) via configuração centralizada, se necessário.

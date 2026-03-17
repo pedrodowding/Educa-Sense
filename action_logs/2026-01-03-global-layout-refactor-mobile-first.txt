@@ -1,0 +1,41 @@
+# Refatoração Global de Layout Mobile-First
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Resumo das Alterações
+
+### 1. Modularização de Componentes (App.tsx)
+O arquivo `App.tsx` estava monolítico e difícil de manter. Foram extraídos componentes funcionais para arquivos dedicados:
+- `components/DesktopHeader.tsx`: Header responsivo para desktop, oculto em mobile.
+- `components/BottomNavWrapper.tsx`: Navegação inferior para mobile, com suporte a "safe-area" (iPhone X+).
+- `components/RoleSwitchButton.tsx`: Botão de logout/troca de perfil reutilizável.
+
+### 2. Ajustes de Layout e Responsividade
+- **App.tsx**: 
+  - Reestruturação do `HashRouter` para envolver toda a aplicação.
+  - Lógica de padding inferior condicional (`pb-16`) movida para o container principal para evitar sobreposição do conteúdo pelo menu mobile.
+- **index.html**:
+  - Adição da classe utilitária `.pb-safe` e `.pt-safe` para suporte a `env(safe-area-inset-*)`, garantindo que o menu inferior não cubra a barra de home do iOS.
+- **LandingPage.tsx**:
+  - Implementação de navegação desktop (links "Como funciona", "Recursos", "Planos").
+  - Adição de `scroll-mt-24` para compensar o header fixo ao clicar nos links de âncora.
+  - Aumento da área de toque dos botões (altura mínima 40-44px) para melhor usabilidade em mobile.
+  - Correção de IDs de seção faltantes.
+
+### 3. DashboardPage.tsx
+- Inclusão explícita de `grid-cols-1` para mobile na seção de "Programas Ativos", garantindo empilhamento correto em telas pequenas.
+
+## Próximos Passos Sugeridos
+1. **Testes em Dispositivos Reais**: Verificar o comportamento do `pb-safe` em um iPhone físico ou simulador.
+2. **Refinamento de Estilos**: Padronizar as cores de borda e sombras entre os novos componentes e o restante do app (ex: `border-gray-100` vs `border-gray-200`).
+3. **Performance**: Analisar o impacto do carregamento do Tailwind via CDN (atualmente em `index.html`) e considerar migrar para build process se possível no futuro.
+
+## Arquivos Modificados/Criados
+- `App.tsx`
+- `components/DesktopHeader.tsx` (Novo)
+- `components/BottomNavWrapper.tsx` (Novo)
+- `components/RoleSwitchButton.tsx` (Novo)
+- `pages/LandingPage.tsx`
+- `pages/DashboardPage.tsx`
+- `index.html`

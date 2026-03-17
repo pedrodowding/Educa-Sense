@@ -1,0 +1,29 @@
+Data: 2025-12-26
+
+O que aconteceu
+- A geração falhou com: "A IA não retornou questões válidas no formato solicitado."
+- Isso ocorre quando o modelo retorna JSON, porém com variações que quebram as regras (ex: correctAnswer não bate com options, options != 4, mistura de tipos), e mesmo após 1 reparo ainda não atinge 10 questões válidas.
+
+O que foi feito
+- Tornada a validação mais tolerante sem inventar conteúdo:
+  - Se vierem mais de 4 opções, corta para 4.
+  - Se correctAnswer vier como "A/B/C/D" ou "1..4", converte para a opção correspondente.
+  - Se correctAnswer não bater, usa a primeira opção existente como fallback (sem criar novas opções).
+- Restringido o schema de resposta conforme o modo selecionado (multiple/open) para reduzir mistura.
+- Adicionado fallback para completar as questões faltantes: se a segunda tentativa tiver algumas questões válidas mas faltar quantidade, faz uma chamada extra gerando apenas o restante e mescla sem duplicar por texto.
+
+Arquivos alterados
+- services/ai/exerciseUtils.ts
+- services/ai/exerciseService.ts
+
+Como validar
+- npm run check
+
+Possíveis próximos passos
+- Aplicar o mesmo esquema "fill" na geração de inglês/leitura se esse erro ocorrer nelas.
+- Registrar métrica de "repair/fill" por operação para calibrar prompt/schema.
+
+Análise (escalabilidade/manutenibilidade)
+O problema original era uma validação correta porém rígida demais para a variabilidade real do modelo, causando hard-fail na experiência do usuário. Ao sanitizar respostas (sem fabricar opções) e limitar o schema pelo modo, reduzimos a chance de falha e mantemos o contrato (modo + quantidade). O fallback de "fill" mantém custo controlado porque só roda quando necessário e gera apenas o que falta, evitando múltiplos retries completos.
+
+Para manter escalabilidade, o fluxo continua com número de chamadas limitado (até 3 no pior caso), o que protege latência/custo em produção. Como evolução, vale telemetria de aderência do modelo e eventualmente um mecanismo de degradação (mensagem específica/CTA para tentar novamente) quando mesmo o fill não atingir o contrato.

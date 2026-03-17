@@ -1,0 +1,53 @@
+# Action Log: Social Experience for Students (Sprint 3)
+
+## Contexto
+Implementação da experiência social leve para o aluno, conforme Sprint 3. O foco é dar visibilidade e feedback às interações de amizade, sem adicionar complexidade ou distrações inseguras (sem chat, sem feed).
+
+## Mudanças Realizadas
+
+### Backend (Migration & RPCs)
+*   **Arquivo**: `supabase/migrations/20260204120000_sprint3_social.sql`
+*   **Tabela**: `child_notifications` criada para armazenar eventos sociais (convites, aceites, conquistas).
+*   **RPCs**:
+    *   `rpc_get_unread_notifications_count`: Contagem para badges.
+    *   `rpc_list_notifications`: Listagem para exibir mensagens.
+    *   `rpc_mark_notification_read`: Controle de estado de leitura.
+    *   **Atualização de RPCs de Amigos**:
+        *   `rpc_send_friend_request_by_code`: Gera notificação `friend_invite` para o destinatário.
+        *   `rpc_respond_friend_request` e `rpc_parent_respond_friend_request`: Geram notificações `friend_accept` (feedback para quem convidou) e `friend_activity` (feedback "Vocês agora são amigos" para quem recebeu).
+
+### Frontend (Hooks & Types)
+*   **`types.ts`**: Adicionada interface `ChildNotification`.
+*   **`hooks/useNotifications.ts`**: Hook novo para consumir as RPCs de notificação.
+*   **`hooks/useFriends.ts`**: Atualizado para expor dados necessários para as novas telas.
+
+### Frontend (UI Components)
+*   **`FriendsCard.tsx` (Home)**:
+    *   Adicionado badge de notificações não lidas.
+    *   Adicionado "Microcopy" dinâmico (ex: "Você tem um novo amigo!") substituindo o contador estático quando há novidades.
+*   **`FriendsPage.tsx`**:
+    *   Implementado sistema de feedback visual (Toast) ao aceitar convites.
+    *   Integração com `useNotifications` para marcar como lido ao entrar na página.
+*   **`FriendsList.tsx`**:
+    *   Tornou os cards de amigos clicáveis.
+*   **`FriendProfilePage.tsx`** (Nova Página):
+    *   Exibe perfil simples do amigo (Avatar, Nome, Nível, XP).
+    *   Lista conquistas/badges.
+    *   Mensagem motivacional fixa: "Vocês estão aprendendo juntos!".
+*   **`App.tsx`**:
+    *   Adicionada rota `/student/friends/:friendId` para o perfil do amigo.
+
+## Verificação
+*   **Typecheck**: Executado com sucesso (`npm run typecheck`).
+*   **Integridade**: Rotas configuradas, hooks integrados e migration criada.
+*   **Requisitos da Sprint**:
+    *   [x] Tabela `child_notifications`.
+    *   [x] RPCs de notificação.
+    *   [x] Home com badge e microcopy.
+    *   [x] Amigos clicáveis levando ao perfil.
+    *   [x] Feedback visual (Toasts).
+    *   [x] Sem funcionalidades inseguras (chat/feed).
+
+## Próximos Passos
+*   Aplicar a migration no banco de dados Supabase.
+*   Validar visualmente a animação dos toasts e a transição para o perfil do amigo.

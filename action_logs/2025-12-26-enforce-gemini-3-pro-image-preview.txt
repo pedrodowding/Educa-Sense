@@ -1,0 +1,18 @@
+Data: 2025-12-26
+
+O que foi realizado
+- Ajustada a função de transformar foto em desenho para usar obrigatoriamente o modelo gemini-3-pro-image-preview.
+- Removido o fallback de IA (describe->generate) dentro desta função para garantir que apenas esse modelo seja usado na etapa de IA.
+- Mantido fallback local (processamento no navegador) caso a API não retorne imagem.
+- Melhorado o processamento local com blur + binarização para reduzir ruído e deixar o traço mais limpo.
+- Atualizado o default de IMAGE_MODEL_I2I em aiModels.ts para gemini-3-pro-image-preview.
+- Validado com build e typecheck.
+
+Arquivos alterados
+- lib/aiModels.ts
+- services/ai/coloringService.ts
+- services/imageProcessing.ts
+
+Próximos passos sugeridos
+- Confirmar que a chave/API tem acesso ao modelo gemini-3-pro-image-preview (caso a resposta volte apenas texto ou erro 404/permission).
+- Se o modelo retornar imagem, aplicar a validação de padrão (PB/fundo branco) também no fluxo de foto, com 1 retry, sem trocar de modelo.

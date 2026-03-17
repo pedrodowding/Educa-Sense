@@ -1,0 +1,23 @@
+# Deploy de Produção - Correções UI/UX Dashboard
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Resumo
+Realizado deploy bem-sucedido na Vercel contendo a refatoração completa da página Dashboard Pais e correções de layout mobile-first.
+
+## Detalhes do Deploy
+- **Ambiente:** Production
+- **URL de Inspeção:** https://vercel.com/pedro-dowdings-projects/educa-sense/8b8eyx2BKLf5KY172sYCCeydMUdD
+- **URL de Produção:** https://educa-sense-qjftb1gz4-pedro-dowdings-projects.vercel.app
+- **Build Status:** Sucesso (Exit Code 0)
+
+## Alterações Incluídas
+1. Refatoração do `DashboardPage.tsx` (Grid 12-colunas, hierarquia de CTAs).
+2. Unificação do Header em `DesktopHeader.tsx`.
+3. Remoção de navegação duplicada (Mobile vs Desktop).
+4. Correções de acessibilidade e padronização de datas.
+
+## Próximos Passos
+- Monitorar logs de produção para garantir que não haja regressões.
+- Validar visualmente em dispositivos reais se possível.

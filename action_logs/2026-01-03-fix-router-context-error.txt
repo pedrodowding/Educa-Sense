@@ -1,0 +1,38 @@
+# Correção de Erro de Contexto do Router
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Problema Identificado
+O usuário reportou um erro em tempo de execução: `Error: useLocation() may be used only in the context of a <Router> component`.
+Isso ocorreu porque o componente `EducaSenseApp` utiliza o hook `useLocation`, mas não estava envolto por um `Router` (`HashRouter` ou `BrowserRouter`) na árvore de componentes.
+
+## Ação Realizada
+O arquivo `App.tsx` foi atualizado para envolver toda a aplicação com o `HashRouter`.
+
+**Antes:**
+```tsx
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <EducaSenseApp />
+    </AuthProvider>
+  );
+};
+```
+
+**Depois:**
+```tsx
+const App: React.FC = () => {
+  return (
+    <HashRouter>
+      <AuthProvider>
+        <EducaSenseApp />
+      </AuthProvider>
+    </HashRouter>
+  );
+};
+```
+
+## Resultado
+O erro deve ser resolvido, pois agora o contexto de roteamento está disponível para `EducaSenseApp` e todos os seus componentes filhos (`DesktopHeader`, `BottomNavWrapper`, etc.) que dependem de funcionalidades de navegação.

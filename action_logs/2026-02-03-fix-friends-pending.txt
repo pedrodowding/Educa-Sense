@@ -1,0 +1,33 @@
+# Fix: Friend Requests Visibility and Security
+Date: 2026-02-03
+
+## Context
+Users reported that sending a friend request resulted in a "Pending" state (preventing re-sending), but the recipient (another child) did not see the request in their list.
+
+## Diagnosis
+- The `friend_requests` table uses Row Level Security (RLS) policies.
+- The existing policy relies on `current_child_id()`, which extracts the child ID from the JWT.
+- Since the application is primarily used by Parents (Guardians) who "view as" a child, the JWT belongs to the Parent. `current_child_id()` returns NULL.
+- Consequently, direct `SELECT` queries on `friend_requests` (used by `useFriends.ts`) were returning empty lists due to RLS blocking access.
+- The RPCs for sending requests (`rpc_send_friend_request_by_code`) were working (Security Definier), hence the record existed in the DB, causing "Already Pending" errors on retry.
+
+## Actions Taken
+1. **Created Migration (`supabase/migrations/20240101003000_fix_friend_requests_rpc.sql`)**:
+   - Implemented `rpc_get_friend_requests(p_child_id)`:
+     - Uses `SECURITY DEFINER` to bypass RLS.
+     - **Security Check**: Verifies that the executing user (`auth.uid()`) is the Guardian of `p_child_id` before returning data.
+     - Returns a unified list of requests with nested `from_child` and `to_child` profile data.
+   - Updated `rpc_send_friend_request_by_code`:
+     - Added Guardian ownership check for `p_from_child_id`.
+     - Added **Bidirectional Check**: Now prevents creating a new request if a reverse request (B->A) already exists pending.
+   - Updated `rpc_get_my_friends`:
+     - Added Guardian ownership check to prevent IDOR.
+
+2. **Updated Frontend (`hooks/useFriends.ts`)**:
+   - Replaced direct `supabase.from('friend_requests').select(...)` with the new `rpc_get_friend_requests`.
+   - This ensures the Parent can fetch the requests for their child successfully.
+
+## Next Steps
+- Apply the new migration to the Supabase database.
+- Verify that "Received" requests now appear in the UI.
+- Verify that sending a request to someone who already invited you (reverse direction) is handled gracefully (currently returns "Already Pending", which is safe).

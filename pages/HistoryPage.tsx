@@ -1,14 +1,37 @@
 
-import React from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Exercise } from '../types';
+import HistorySwipeRow from './components/HistorySwipeRow';
 
 interface Props {
   history: Exercise[];
+  onDeleteExercise: (id: string) => Promise<boolean>;
 }
 
-const HistoryPage: React.FC<Props> = ({ history }) => {
+const HistoryPage: React.FC<Props> = ({ history, onDeleteExercise }) => {
   const navigate = useNavigate();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const deletingRef = useRef<Set<string>>(new Set());
+
+  const sortedHistory = useMemo(() => {
+    const next = [...history];
+    next.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return next;
+  }, [history]);
+
+  const requestDelete = async (id: string) => {
+    if (deletingRef.current.has(id)) return;
+    const ok = window.confirm('Apagar esta atividade do histórico?');
+    if (!ok) return;
+    deletingRef.current.add(id);
+    try {
+      await onDeleteExercise(id);
+    } finally {
+      deletingRef.current.delete(id);
+      if (openId === id) setOpenId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -20,7 +43,7 @@ const HistoryPage: React.FC<Props> = ({ history }) => {
       </header>
 
       <main className="p-4 pb-24">
-        {history.length === 0 ? (
+        {sortedHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
             <div className="size-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
               <span className="material-symbols-outlined text-4xl">history</span>
@@ -37,43 +60,16 @@ const HistoryPage: React.FC<Props> = ({ history }) => {
           <div className="space-y-6">
             <h3 className="text-xs font-bold uppercase text-text-sub tracking-widest">Suas atividades recentes</h3>
             <div className="flex flex-col gap-4">
-              {history.map(item => (
-                <div 
+              {sortedHistory.map(item => (
+                <HistorySwipeRow
                   key={item.id}
-                  onClick={() => navigate(`/exercicio-facil/resultado/${item.id}`)}
-                  className="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-[0.98] transition-transform cursor-pointer"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex gap-3">
-                      <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <span className="material-symbols-outlined">
-                          {item.subject === 'Matemática' ? 'calculate' : 'menu_book'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold uppercase text-primary mb-1 block">{item.subject}</span>
-                        <h4 className="font-bold">{item.title}</h4>
-                      </div>
-                    </div>
-                    {item.score !== undefined && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-xl font-black text-primary">{item.score.toFixed(1)}</span>
-                        <span className="text-[10px] font-bold uppercase text-text-sub">Pontos</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-2 text-xs text-text-sub font-medium">
-                      <span>{item.childName}</span>
-                      <span>•</span>
-                      <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <button className="text-xs font-bold text-primary flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">visibility</span>
-                      Ver
-                    </button>
-                  </div>
-                </div>
+                  item={item}
+                  onNavigate={() => navigate(`/exercicio-facil/resultado/${item.id}`)}
+                  onDelete={() => requestDelete(item.id)}
+                  isAnyOpen={!!openId}
+                  onOpen={() => setOpenId(item.id)}
+                  onClose={() => setOpenId(cur => (cur === item.id ? null : cur))}
+                />
               ))}
             </div>
           </div>

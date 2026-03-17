@@ -1,0 +1,30 @@
+Data: 2025-12-26
+
+O que foi realizado
+- Geração de exercícios: adicionado seletor de formato de questões (Múltipla, Dissertativa, Mista) nas telas:
+  - Exercício Fácil (criar)
+  - Leitura Guiada
+  - Inglês Todo Dia
+- Serviço de IA: prompts ajustados para respeitar o formato escolhido e normalização das questões:
+  - Gera id para cada questão quando faltar
+  - Remove options quando não é múltipla escolha
+- Quiz: suporte robusto para dissertativas (campo de texto + verificação por IA) e mistas.
+- Navegação: adicionados botões claros para acessar o Histórico em Exercício Fácil.
+- Perfil: botão de sair também no cabeçalho (atalho rápido), mantendo o botão existente.
+
+Arquivos alterados
+- services/ai/exerciseService.ts
+- pages/CreateExercisePage.tsx
+- pages/LeituraGuiadaPage.tsx
+- pages/InglesTodoDiaPage.tsx
+- pages/QuizPage.tsx
+- pages/ProgramPage.tsx
+- pages/GuardianProfilePage.tsx
+
+Validação executada
+- npm run check (typecheck + build) OK
+
+Possíveis próximos passos
+- Persistir respostas dissertativas do aluno (opcional) no histórico, se desejado para relatórios.
+- Ajustar UX do quiz: salvar progresso parcial e retomar tentativa.
+- Adicionar um filtro no Histórico por aluno/matéria (melhora em contas com muitos registros).

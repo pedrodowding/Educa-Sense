@@ -1,0 +1,57 @@
+# Relatório de Ação: Sprint 7 - Home do Aluno (UI/UX)
+Data: 2026-02-05
+Autor: Trae AI
+
+## Resumo
+Evolução da Home do Aluno (StudentDashboard) para aumentar clareza, motivação e engajamento emocional, sem adicionar novas funcionalidades complexas ou dependências de IA.
+
+## Alterações Realizadas
+
+### 1. Narrativa Diária ("Hoje você vai...")
+- **Componente**: `TodayPlanCard.tsx`
+- **Mudança**: Adicionado bloco com lista narrativa dinâmica (Check-in, Missão, Estrela) que atualiza visualmente conforme o progresso. Substitui a lista técnica antiga.
+- **Microcopy**: "Plano de hoje" -> "Missão de hoje".
+
+### 2. Progresso Simplificado
+- **Componente**: `StudentHeader.tsx`
+- **Mudança**: Unificação de XP, Nível e Meta em uma única barra de progresso com mensagens motivacionais baseadas na proximidade do próximo nível (ex: "Falta pouquinho para o próximo nível! 🚀").
+- **Visual**: Removidos contadores dispersos de streak e stars para reduzir carga cognitiva.
+
+### 3. Medalhas com Proximidade
+- **Componente**: `BadgesSection.tsx`
+- **Mudança**: Filtragem para exibir apenas as 2 últimas medalhas ganhas e 1 medalha bloqueada ("Próxima") com destaque visual e mensagem "Falta pouco!".
+- **Objetivo**: Focar no próximo passo alcançável em vez de mostrar um grid de bloqueios desmotivador.
+
+### 4. Social com Microfeedback
+- **Componente**: `FriendsCard.tsx`
+- **Mudança**: Integração com `useSocialInteractions` para exibir microfeedback textual (ex: "João completou a missão! 🎉") em vez de apenas contagem de amigos.
+
+### 5. Estado Pós-Conclusão (Recompensa)
+- **Componente**: `TodayPlanCard.tsx`
+- **Mudança**: Adicionado CTA claro "🎁 Recompensa disponível!" após completar 3/3 passos, direcionando para criação de história ou álbum.
+
+### 6. Organização Visual
+- **Arquivo**: `StudentDashboardPage.tsx`
+- **Ordem**: Reorganizado conforme spec obrigatória:
+  1. Header (Saudação + Progresso)
+  2. Missão de Hoje (CTA Principal)
+  3. Amigos
+  4. Medalhas
+  5. Feed/Histórico (Secundário)
+
+## Validação
+- **Typecheck**: `npm run typecheck` executado com sucesso.
+- **Critérios de Aceite**:
+  - [x] Criança entende o que fazer hoje (Narrativa)
+  - [x] Home mais limpa (Menos números, ordem lógica)
+  - [x] Plano de Hoje é CTA principal
+  - [x] Textos infantis e motivadores
+  - [x] Medalhas parecem alcançáveis
+  - [x] Social é apoio, não distração
+
+## Arquivos Impactados
+- `pages/StudentDashboardPage.tsx`
+- `pages/student/components/StudentHeader.tsx`
+- `pages/student/components/TodayPlanCard.tsx`
+- `pages/student/components/FriendsCard.tsx`
+- `pages/student/components/BadgesSection.tsx`

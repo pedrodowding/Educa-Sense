@@ -1,0 +1,25 @@
+Hotfix de Debug: Reset Diário
+Data: 2026-02-05
+Autor: Assistant (Gemini)
+
+Objetivo:
+Permitir o reset do "Plano de Hoje" (0/3) para testar bug de auto-conclusão no mobile, sem afetar histórico ou XP acumulado.
+
+Mudanças Realizadas:
+1. Banco de Dados (RPC):
+   - Criado script de migração `supabase/migrations/20260205210000_debug_reset_day.sql`.
+   - Função `rpc_debug_reset_daily_progress`:
+     - Deleta registros do dia atual em `activity_completions`, `daily_checkins`, `child_activity_events`, `child_daily_rewards`.
+     - NÃO altera `child_progress` para preservar XP total.
+     - Retorna contagem de registros deletados.
+
+2. Frontend (UI):
+   - Atualizado `pages/SettingsPage.tsx`.
+   - Adicionado botão "Reset" (ícone restart_alt) no card de cada estudante.
+   - Botão visível APENAS em ambiente de desenvolvimento (`import.meta.env.DEV`).
+   - Adicionado handler com confirmação de segurança.
+
+Próximos Passos:
+- Aplicar a migração no banco de dados de desenvolvimento (`supabase db push` ou via dashboard).
+- Testar o reset no mobile/simulador para reproduzir o bug de auto-conclusão.
+- Após correção do bug original, o botão de debug pode permanecer para testes futuros (pois está protegido por flag DEV) ou ser removido.

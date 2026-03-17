@@ -1,0 +1,23 @@
+Data: 2025-12-26
+
+O que foi feito
+- Corrigido o fluxo de persistência de histórico para impedir insert com childId inválido (não-UUID) na tabela exercises.
+- Ajustado o contrato do saveToHistory para exigir childId UUID e falhar de forma segura antes de chamar o banco.
+- Garantido que as páginas de geração de exercícios sobrescrevam o childId com selectedChild.id ao chamar onSave.
+- Validados build e typecheck do projeto (vite build e tsc --noEmit).
+
+Arquivos principais alterados
+- hooks/useHistory.ts
+- pages/CreateExercisePage.tsx
+- pages/LeituraGuiadaPage.tsx
+- pages/InglesTodoDiaPage.tsx
+- pages/ArtesCriativasPage.tsx
+- services/geminiService.ts
+
+Motivação
+- O Supabase rejeitava inserts com erro 22P02 (invalid input syntax for type uuid) quando o childId era uma string curta gerada no client, o que interrompia o salvamento do histórico.
+
+Próximos passos sugeridos
+- Persistir também perguntas/alternativas do exercício no histórico (via coluna JSONB ou tabela relacionada) para permitir reabertura do exercício depois.
+- Remover comentários antigos/temporários em hooks/useHistory.ts se quiser manter o arquivo mais enxuto (sem alterar comportamento).
+- Considerar reduzir o bundle (warning > 500kB) com code splitting/dynamic import caso isso afete performance em mobile.

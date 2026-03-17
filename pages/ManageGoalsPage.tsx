@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Child, BehaviorGoal } from '../types';
 
@@ -12,24 +12,31 @@ interface Props {
 
 const ManageGoalsPage: React.FC<Props> = ({ children, goals, onAddGoal, onDeleteGoal }) => {
   const navigate = useNavigate();
-  const [selectedChild, setSelectedChild] = useState<Child>(children[0]);
+  const [selectedChild, setSelectedChild] = useState<Child | null>(() => children[0] || null);
   const [showAddForm, setShowAddForm] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
   const [newTarget, setNewTarget] = useState(5);
 
-  const childGoals = goals.filter(g => g.childId === selectedChild.id);
+  useEffect(() => {
+    if (selectedChild) return;
+    if (children.length === 0) return;
+    setSelectedChild(children[0]);
+  }, [children, selectedChild]);
+
+  const childGoals = selectedChild ? goals.filter(g => g.childId === selectedChild.id) : [];
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle) return;
+    if (!selectedChild) return;
     
     const goal: BehaviorGoal = {
       id: Math.random().toString(36).substr(2, 9),
       childId: selectedChild.id,
-      title: newTitle,
-      targetDays: newTarget,
-      completedDays: []
+      description: newTitle,
+      target: newTarget,
+      progress: 0
     };
     
     onAddGoal(goal);
@@ -45,7 +52,7 @@ const ManageGoalsPage: React.FC<Props> = ({ children, goals, onAddGoal, onDelete
         </button>
         <h1 className="text-xl font-black">Metas da Semana</h1>
         <button 
-          onClick={() => setShowAddForm(true)}
+          onClick={() => (selectedChild ? setShowAddForm(true) : navigate('/settings'))}
           className="size-10 rounded-full bg-primary text-black flex items-center justify-center shadow-glow"
         >
           <span className="material-symbols-outlined">add</span>
@@ -59,13 +66,20 @@ const ManageGoalsPage: React.FC<Props> = ({ children, goals, onAddGoal, onDelete
              <button 
                key={c.id}
                onClick={() => setSelectedChild(c)}
-               className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 shrink-0 transition-all ${selectedChild.id === c.id ? 'border-primary bg-primary/10' : 'border-gray-100 opacity-50'}`}
+               className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 shrink-0 transition-all ${selectedChild?.id === c.id ? 'border-primary bg-primary/10' : 'border-gray-100 opacity-50'}`}
              >
                 <img src={c.avatar} alt={c.name} className="size-6 rounded-full" />
                 <span className="text-xs font-bold">{c.name}</span>
              </button>
            ))}
         </div>
+
+        {!selectedChild && (
+          <div className="text-center py-20 opacity-30">
+            <span className="material-symbols-outlined text-5xl">group</span>
+            <p className="text-xs font-bold mt-2">Nenhuma criança selecionada</p>
+          </div>
+        )}
 
         <section className="space-y-4">
            {childGoals.length > 0 ? childGoals.map(goal => (
@@ -74,8 +88,8 @@ const ManageGoalsPage: React.FC<Props> = ({ children, goals, onAddGoal, onDelete
                    <span className="material-symbols-outlined">verified</span>
                 </div>
                 <div className="flex-1">
-                   <p className="font-bold text-sm">{goal.title}</p>
-                   <p className="text-[10px] font-black text-text-sub uppercase tracking-widest">{goal.targetDays} dias por semana</p>
+                   <p className="font-bold text-sm">{goal.description}</p>
+                   <p className="text-[10px] font-black text-text-sub uppercase tracking-widest">{goal.target} dias por semana</p>
                 </div>
                 <button 
                   onClick={() => onDeleteGoal(goal.id)}
@@ -94,7 +108,7 @@ const ManageGoalsPage: React.FC<Props> = ({ children, goals, onAddGoal, onDelete
       </main>
 
       {/* Add Goal Modal */}
-      {showAddForm && (
+      {showAddForm && selectedChild && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
           <div className="w-full max-w-md bg-white dark:bg-surface-dark rounded-[40px] p-8 shadow-2xl animate-fade-in-up">
             <div className="flex justify-between items-center mb-6">

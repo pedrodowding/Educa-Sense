@@ -6,7 +6,7 @@ import { generateExerciseAI } from '../services/geminiService';
 
 interface Props {
   teacher: Guardian | null;
-  onSave: (exercise: Exercise) => void;
+  onSave: (exercise: Exercise) => Promise<Exercise | null | void>;
 }
 
 const TeacherCreateActivityPage: React.FC<Props> = ({ teacher, onSave }) => {
@@ -39,7 +39,6 @@ const TeacherCreateActivityPage: React.FC<Props> = ({ teacher, onSave }) => {
         title: `[Prof. ${teacher?.name.split(' ')[1]}] ${theme}`
       };
       
-      onSave(teacherExercise);
       alert('Atividade pedagógica gerada e disponibilizada para os responsáveis!');
       navigate('/teacher');
     } catch (e) {

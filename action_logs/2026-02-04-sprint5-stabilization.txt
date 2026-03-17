@@ -1,0 +1,38 @@
+# Action Log - Sprint 5 Stabilization
+Date: 2026-02-04
+Description: Stabilization of Social Features, RPC Fixes, and Sprint 4 Closure.
+
+## 1. RPC Notification Fixes (PGRST202/404)
+- **Problem**: Frontend was receiving PGRST202 errors because PostgREST schema cache was stale or function signatures didn't match.
+- **Action**: 
+  - Updated `supabase/migrations/20260204160000_sprint5_stabilization.sql`.
+  - Added `NOTIFY pgrst, 'reload schema';` to force cache refresh.
+  - Refactored `rpc_get_unread_notifications_count`, `rpc_list_notifications`, and `rpc_mark_notification_read`.
+  - **Improvement**: Made `p_child_id` optional (`DEFAULT NULL`) in RPCs. This supports both:
+    - **Guardian Mode**: Passing `p_child_id` explicitly (current architecture).
+    - **Child Mode**: Using `current_child_id()` from session (future proofing).
+  - Validated that permissions check `guardian_id` OR `child_id` ownership.
+
+## 2. Frontend Guardrails
+- **File**: `hooks/useNotifications.ts`
+- **Action**: 
+  - Added `try/catch` blocks around RPC calls.
+  - Specific handling for `PGRST202` (Function not found) and `42883` (Undefined function).
+  - **Result**: If RPCs fail, the hook returns empty lists/counts instead of throwing errors that crash the React app. This ensures the "Plano de Hoje" remains accessible even if Social features are down.
+
+## 3. Sprint 4 Validation (Code Review)
+- **Blocking Logic**: Verified `rpc_block_child` in `20260204140000`.
+  - Removes existing friendships.
+  - Cancels pending requests.
+  - Inserts block record.
+  - Adds audit log.
+- **Anti-Spam Limits**: Verified `rpc_send_friend_request_by_code`.
+  - Checks daily limit (5).
+  - Checks monthly limit (20).
+  - Checks if blocked before sending.
+  - Returns clear error messages.
+
+## 4. Next Steps
+- Apply the migration `20260204160000_sprint5_stabilization.sql` in Supabase.
+- Verify in production/staging environment.
+- Run the manual checklist with 2 users (Guardian + Child).

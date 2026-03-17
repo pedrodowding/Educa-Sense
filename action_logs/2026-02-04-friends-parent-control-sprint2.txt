@@ -1,0 +1,47 @@
+# Action Log: Friends System Parent Control (Sprint 2)
+
+## Contexto
+Implementação das funcionalidades de controle parental para o sistema de amigos, conforme requisitos da Sprint 2. O objetivo é permitir que os responsáveis gerenciem o acesso dos filhos ao recurso de amigos, aprovem convites e removam amizades, com registro de auditoria.
+
+## Mudanças Realizadas
+
+### Frontend
+1.  **`pages/SettingsPage.tsx`**:
+    *   Adicionados controles (toggles) para "Permitir amigos" e "Exigir minha aprovação".
+    *   Implementada listagem de convites pendentes que requerem aprovação do responsável.
+    *   Implementada listagem de amigos atuais com opção de remoção pelo responsável.
+    *   Utilizado o padrão de UI existente (similar ao toggle de Dark Mode) para consistência.
+
+2.  **`hooks/useChildren.ts`**:
+    *   Atualizada função `updateChild` para suportar atualização dos campos `friendsEnabled` e `friendsParentApprovalRequired`.
+    *   Adicionado suporte a log de auditoria via `logAuditEvent` (frontend) e chamada RPC dedicada.
+
+3.  **`hooks/useFriends.ts`**:
+    *   Adicionado hook `useParentPendingFriendRequests` (anteriormente faltando) para buscar e responder solicitações pendentes.
+    *   Exportação correta do hook para uso na `SettingsPage`.
+
+### Backend (Migration)
+*   **Arquivo**: `supabase/migrations/20260203183000_sprint2_friends_parent_control.sql`
+*   **Alterações**:
+    *   Novas colunas em `children`: `friends_enabled`, `friends_parent_approval_required`.
+    *   Novas colunas em `friend_requests`: `requires_parent_approval`, `approved_by_parent_user_id`, `approved_at`.
+    *   Criação da tabela `friends_audit_log` para registro seguro de ações.
+    *   Atualização de RLS policies para acesso dos pais.
+    *   Criação de funções RPC:
+        *   `rpc_parent_update_friends_settings`: Atualiza configurações e insere log de auditoria.
+        *   `rpc_parent_list_pending_friend_requests`: Lista convites aguardando aprovação.
+        *   `rpc_parent_respond_friend_request`: Aceita/Rejeita convites e loga ação.
+        *   `rpc_parent_remove_friendship`: Remove amizade e loga ação.
+        *   Atualização de `rpc_send_friend_request_by_code` para respeitar configurações de bloqueio e necessidade de aprovação.
+
+## Verificação
+*   **Typecheck**: Executado com sucesso (`npm run typecheck`).
+*   **Lint**: Verificado scripts (comando lint não configurado, usado typecheck).
+*   **Lógica de Auditoria**: Confirmado que as RPCs inserem registros na tabela `friends_audit_log`, cobrindo o requisito de audit logging no backend.
+
+## Próximos Passos
+1.  Garantir que a migration seja aplicada no banco de dados Supabase (caso ainda não tenha sido).
+2.  Testar o fluxo completo de aprovação parental:
+    *   Filho envia convite -> Pai vê como pendente -> Pai aprova -> Amizade formada.
+    *   Pai bloqueia amigos -> Filho não consegue acessar/enviar convites.
+3.  Monitorar logs de auditoria para garantir rastreabilidade.

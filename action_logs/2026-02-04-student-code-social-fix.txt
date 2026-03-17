@@ -1,0 +1,9 @@
+Resumo:
+- Ajustado o fluxo social para usar StudentContext/FamilyChildren em páginas de amigos e perfil.
+- Provider FamilyChildren incluído no App para reidratar irmãos por guardianId.
+- Tipagem de Child atualizada com guardianId e removidos casts.
+- Correção de typecheck em MemoryGamePage e build validado.
+
+Próximos passos:
+- Revisar uso de SelectedChildContext em páginas não sociais e padronizar quando necessário.
+- Avaliar divisão de arquivos grandes (ex.: SettingsPage) para manter < 300 linhas.

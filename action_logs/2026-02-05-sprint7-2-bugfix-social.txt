@@ -1,0 +1,34 @@
+# Relatório de Ação: Sprint 7.2 - Bugfix e Estabilização Social
+Data: 2026-02-05
+Autor: Trae AI
+
+## Resumo
+Correção crítica de bugs no módulo social, focando em erros de agregação SQL no feed de atividades e violação de constraints (NOT NULL) no envio de notificações. Implementação de fallback seguro no frontend para garantir estabilidade.
+
+## Alterações Realizadas
+
+### 1. Backend (Supabase/PostgreSQL)
+- **Arquivo**: `supabase/migrations/20260205150000_sprint7_2_bugfix_social.sql`
+- **Correção SQL (Erro 42803)**:
+  - Reescrevi a função `rpc_get_friend_activities` para usar CTE (Common Table Expression). Agora, a query seleciona e ordena as atividades (`ORDER BY completed_at DESC LIMIT 3`) antes de realizar a agregação `jsonb_agg`. Isso elimina o erro de coluna não agregada no `ORDER BY`.
+- **Correção de Notificações (Erro 23502)**:
+  - Atualizei a função `rpc_send_predefined_message` para preencher explicitamente os campos `title` e `body` na tabela `child_notifications`, evitando violação de constraint NOT NULL.
+  - Mapeamento de `message_id` para texto legível no corpo da notificação.
+
+### 2. Frontend (React/Hooks)
+- **Arquivo**: `hooks/useSocialInteractions.ts`
+- **Hardening**:
+  - Adicionado fallback explícito `setUpdates([])` no bloco `catch` do `fetchUpdates`. Isso garante que, se o backend falhar, o feed fique vazio em vez de quebrar a UI.
+  - Condicional `import.meta.env.DEV` para logs de erro, mantendo o console limpo em produção.
+
+## Validação
+- **Typecheck**: `npm run typecheck` executado com sucesso.
+- **Critérios de Aceite**:
+  - [x] Query de feed corrigida (sem erro 42803).
+  - [x] Insert de notificação corrigido (sem erro 23502).
+  - [x] Fallback seguro implementado no frontend.
+  - [x] Logs restritos ao ambiente de desenvolvimento.
+
+## Arquivos Impactados
+- `supabase/migrations/20260205150000_sprint7_2_bugfix_social.sql`
+- `hooks/useSocialInteractions.ts`

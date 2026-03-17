@@ -1,0 +1,37 @@
+# Correção de UI/UX Dashboard Pais
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Resumo das Alterações
+
+### 1. Refatoração Completa do Dashboard (DashboardPage.tsx)
+- **Layout Grid Responsivo:** Implementado grid de 12 colunas.
+  - **Mobile:** 1 coluna (stack vertical).
+  - **Desktop (LG+):** 2 colunas (Principal 8 col / Sidebar 4 col).
+- **Hierarquia Visual:**
+  - Prioridade total para o "Plano de hoje" com CTA único "Começar Agora".
+  - Ações secundárias (Corrigir Foto, Criar Atividade) movidas para grid logo abaixo.
+  - Sidebar dedicada para "Seus Filhos" e "Resumo Semanal".
+- **Consistência de Datas:** Padronizado para formato relativo ("Há X dias", "Há 1 mês") para facilitar leitura rápida.
+- **Acessibilidade:** Botões principais e secundários ajustados para altura mínima de 44px.
+
+### 2. Unificação do Header (DesktopHeader.tsx)
+- **Remoção de Duplicatas:** O header local foi removido do Dashboard. O header global agora gerencia tudo.
+- **Responsividade:**
+  - **Mobile:** Título simplificado "Dashboard", menu de navegação oculto (usa BottomNav).
+  - **Desktop:** Título completo "Educa Sense", menu de navegação visível (Top Nav).
+- **Logout Simplificado:** Botão de sair integrado diretamente no header com ícone e texto (em telas grandes), substituindo componente genérico antigo.
+
+### 3. Navegação Global
+- **Mobile:** Bottom Navigation fixa (componente existente `BottomNavWrapper`).
+- **Desktop:** Top Navigation no Header.
+- **Prevenção de Duplicidade:** Classes utilitárias (`md:hidden`, `hidden md:flex`) garantem que apenas uma navegação apareça por vez.
+
+### 4. Lógica de Premium
+- **Badge "Premium Ativo":** Apenas visível no header se o usuário NÃO for Free.
+- **CTA "Seja Premium":** Apenas visível no dashboard se o usuário FOR Free.
+
+## Próximos Passos
+- Validar fluxo de "Começar Agora" com dados reais de atividades.
+- Verificar se outras páginas precisam de ajuste similar de header (ex: `ProgramPage` ainda tem header local?).

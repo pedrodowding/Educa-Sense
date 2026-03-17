@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /student
+Disallow: /parent
+Disallow: /app
+Disallow: /dashboard
+Disallow: /admin
+
+Sitemap: https://educasense.com.br/sitemap.xml

@@ -1,0 +1,38 @@
+# Action Log: Sprint Audit 1-9 Execution
+Date: 2026-02-04
+User Intent: Executar a sprint de auditoria para resolver bugs, problemas de UX e governança.
+
+## 1. Consolidação da Comunicação Social
+- **Problema**: Confusão entre mensagens sociais e notificações de sistema.
+- **Solução**:
+    - Atualizado `rpc_send_predefined_message` para usar tipo `social_message`.
+    - Criada `StudentInboxPage` para centralizar mensagens de amigos.
+    - Atualizado `FriendsCard` para direcionar mensagens não lidas para o Inbox com CTA "Ler recados 💬".
+    - Adicionado suporte a notificações do tipo `social_message` no frontend (`types.ts`, `App.tsx`).
+
+## 2. Governança de Recompensas
+- **Problema**: Pais não tinham controle sobre "Livro de Histórias" e "Artes Criativas" (apenas Jogos).
+- **Solução**:
+    - Adicionadas colunas `story_enabled` e `drawing_enabled` na tabela `children`.
+    - Atualizado `SettingsPage.tsx` para incluir toggles para estas permissões na seção "Recompensas & Jogos".
+    - Atualizado `StudentDashboardPage` -> `StoryBookCard` para ocultar o card se desativado.
+    - Atualizado `TodayPlanCard` para ocultar/bloquear o CTA de "Criar minha história" se "Artes Criativas" estiver desativado.
+
+## 3. UX Features Confusas
+- **Problema**: "Mural da Escola" e "Teacher Mode" geravam confusão sobre a quem se destinavam.
+- **Solução**:
+    - Renomeado "Mural da Escola" para **"Comunicados da Escola"** em `SettingsPage`.
+    - Renomeado "Sou Professor" para **"Acesso Docente"** em `SettingsPage`.
+    - Renomeada aba de login "Professor" para **"Equipe"** em `LoginPage`, para deixar claro que é para staff escolar.
+
+## 4. Melhorias de Interface (Empty States & Copy)
+- **Problema**: Livro de Histórias vazio era desanimador; Regras do Jogo não eram claras.
+- **Solução**:
+    - **StoryBookPage**: Novo Empty State com visual mais rico, mensagem encorajadora ("Sua estante está vazia 📚") e instrução clara sobre completar missões.
+    - **GameRewardPage**: Adicionado Overlay inicial explicando as regras e o tempo limite antes de começar o jogo.
+
+## 5. Hardening de Auditoria
+- **Verificação**: Confirmado que ações críticas (remover amigo, bloquear, enviar mensagem) já possuem registros na tabela `friends_audit_log`.
+
+## Status
+Sprint Audit 1-9 concluída com sucesso. Todos os itens de bloqueio e confusão de UX foram endereçados.

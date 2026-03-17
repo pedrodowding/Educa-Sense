@@ -1,0 +1,16 @@
+Data: 2025-12-26
+
+O que foi feito
+- Garantido que toda atividade gerada (incluindo Artes Criativas: salvar desenho) persista no histórico via saveToHistory.
+- Ajustado o fluxo de Artes para aguardar o retorno do save e usar o ID persistido, evitando navegação com ID temporário.
+
+Arquivos principais alterados
+- App.tsx
+- pages/ArtesCriativasPage.tsx
+
+Motivação
+- Usuário relatou que as atividades não estavam ficando salvas por aluno. O histórico é lido da tabela exercises, então é necessário inserir sempre ao gerar.
+
+Próximos passos sugeridos
+- Adicionar feedback visual padrão (toast) e tratamento de erro se o salvamento no Supabase falhar.
+- Adicionar filtro/aba "Artes" no Histórico para facilitar achar desenhos.

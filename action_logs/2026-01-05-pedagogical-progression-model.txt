@@ -1,0 +1,30 @@
+# Action Log: Pedagogical Progression Model
+Date: 2026-01-05
+
+## Realizado
+
+### 1. Banco de Dados (PostgreSQL)
+- **Tabela `child_progress`**: Criada para armazenar XP, Nível, Pontos Fortes/Fracos e Totais.
+- **Função `calculate_activity_xp`**: Implementada lógica de XP (Quiz=20, Exercício=15, Leitura=10, Desenho=8, Bônus).
+- **Função `update_child_progress`**: Atualiza atomicamente o progresso da criança.
+- **Função `reprocess_child_history`**: Script para reprocessar todo o histórico existente (Exercises + Activity Completions) e popular a nova tabela retroativamente.
+- **Triggers**:
+  - `on_activity_completion_progress`: Atualiza progresso ao inserir em `activity_completions` (Quiz).
+  - `on_exercise_completion_progress`: Atualiza progresso ao completar `exercises` (Leitura Guiada).
+
+### 2. Frontend (Correções para Progressão)
+- **`ReadingResultPage.tsx`**: Adicionada chamada ao Supabase para marcar a leitura como `completed=true` ao finalizar. Isso é crucial para disparar o trigger de XP.
+
+### 3. Backend / Integração IA
+- **`types.ts`**: Adicionadas interfaces `ChildProgress` e `ChildContext`.
+- **`services/progressService.ts`**: Criado serviço para buscar e formatar o contexto pedagógico da criança.
+- **`services/ai/exerciseService.ts`**: Atualizado para buscar o contexto via `progressService` e injetar no prompt da IA ("CONTEXTO PEDAGÓGICO DO ALUNO...").
+
+## Arquivos SQL Gerados (Necessário Executar)
+1. `supabase_child_progress.sql` (Criação da tabela e funções base)
+2. `supabase_child_progress_triggers.sql` (Triggers e script de reprocessamento)
+
+## Próximos Passos
+1. **Executar Scripts SQL**: Rode os arquivos acima no Editor SQL do Supabase.
+2. **Executar Reprocessamento**: Chame `SELECT public.reprocess_child_history();` no Supabase para atualizar Esther e Samuel.
+3. **Validar**: Verifique se a tabela `child_progress` foi populada e se a IA está recebendo o contexto (logs no console: `[AI Exercise] Context loaded...`).

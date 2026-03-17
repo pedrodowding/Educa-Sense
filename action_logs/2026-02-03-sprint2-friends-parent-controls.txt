@@ -1,0 +1,13 @@
+Action Log: Sprint 2 Friends Parent Controls
+Date: 2026-02-03
+User Intent: Implementar controles parentais no sistema de amigos.
+
+Changes:
+1. Atualizou a tela de ajustes para permitir alternar o acesso a amigos e exigir aprovação do responsável.
+2. Implementou fluxo de convites pendentes e remoção de amigos no painel do responsável.
+3. Criou migração com novas colunas, políticas e RPCs para aprovação parental e auditoria.
+4. Ajustou hooks para usar RPCs atualizadas e refletir configurações de amigos.
+
+Next Steps:
+- Aplicar a migração no Supabase e validar RLS/RPCs.
+- Testar o fluxo ponta a ponta com convites e aprovação parental.

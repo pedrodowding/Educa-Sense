@@ -1,8 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Exercise } from '../types';
-import { generateAudioAI } from '../services/geminiService';
+import { Exercise, Subject } from '../types';
+import { Entitlements } from '../billing/entitlements';
+import { PaywallModal } from '../components/PaywallModal';
 
 interface Props {
   history: Exercise[];
@@ -12,181 +12,205 @@ const ResultPage: React.FC<Props> = ({ history }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const exercise = history.find(e => e.id === id);
-  const [playing, setPlaying] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
-  if (!exercise) return null;
-
-  const parts = exercise.pedagogicalObjective.split('|||');
-  const storyContent = parts.length > 1 ? parts[0] : null;
-  const objectiveText = parts.length > 1 ? parts[1] : parts[0];
-
-  const handlePrint = () => {
-    // Comando direto sem atrasos para evitar bloqueios de popup/print no mobile
-    if (window.print) {
-      window.print();
-    } else {
-      alert("Seu navegador não suporta a função de impressão.");
+  // Debug Logs
+  useEffect(() => {
+    if (exercise) {
+      console.log('[ResultPage] Loading exercise:', {
+        id: exercise.id,
+        type: exercise.type,
+        selectedFormat: exercise.selectedFormat,
+        subject: exercise.subject,
+        hasQuestions: exercise.questions?.length
+      });
     }
-  };
+  }, [exercise]);
 
-  const handlePlayAudio = async () => {
-    if (playing) return;
-    setPlaying(true);
-    const textToRead = storyContent || exercise.title;
-    const audioBase64 = await generateAudioAI(textToRead);
-    
-    if (audioBase64) {
-      const audio = new Audio(`data:audio/pcm;base64,${audioBase64}`);
-      audio.onended = () => setPlaying(false);
-      audio.play().catch(() => setPlaying(false));
-    } else {
-      setPlaying(false);
-      alert("Não foi possível gerar o áudio agora.");
-    }
-  };
+  if (!exercise) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-gray-50 dark:bg-background-dark">
+        <div className="size-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-500 dark:text-gray-400 font-bold">Carregando atividade...</p>
+        <button onClick={() => navigate(-1)} className="mt-8 text-primary font-bold hover:underline">
+          Voltar
+        </button>
+      </div>
+    );
+  }
 
+  // Error if Leitura Guiada (Should use ReadingResultPage)
+  if (exercise.type === 'leitura_guiada' || exercise.selectedFormat === 'leitura_guiada') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-red-50 dark:bg-red-900/10">
+        <div className="size-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+          <span className="material-symbols-outlined text-3xl">error_outline</span>
+        </div>
+        <h2 className="text-xl font-black text-red-700 dark:text-red-400 mb-2">Formato Inválido</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xs mb-6">
+          Este exercício é uma Leitura Guiada e não deveria aparecer aqui. Por favor, gere novamente.
+        </p>
+        <button 
+          onClick={() => navigate('/exercicio-facil/criar')}
+          className="px-6 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all"
+        >
+          Gerar Novamente
+        </button>
+      </div>
+    );
+  }
+
+  // ART Subject Special Handling (Keep as is)
+  if (exercise.subject === Subject.ART && exercise.imageUrl) {
+    return (
+      <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark">
+        {/* Header fixo no topo */}
+        <header className="p-6 pt-10 flex items-center justify-between no-print border-b border-gray-100 dark:border-gray-800 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-md sticky top-0 z-40">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 font-bold text-sm active:scale-95 transition-all">
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Voltar
+          </button>
+          <h2 className="text-lg font-black text-purple-400">Desenho Salvo</h2>
+          <div className="size-10"></div>
+        </header>
+
+        <main className="p-6 flex flex-col items-center flex-1 overflow-y-auto no-scrollbar pb-40 animate-fade-in">
+           <div className="w-full max-w-sm bg-white border-4 border-purple-50 dark:border-gray-800 p-4 rounded-[48px] shadow-soft mb-4">
+              <img src={exercise.imageUrl} alt="Desenho gerado" className="w-full h-auto rounded-[32px] shadow-sm" />
+              <div className="mt-6 text-center">
+                 <p className="text-[10px] font-black uppercase text-purple-300 tracking-[3px]">Atividade de Colorir</p>
+                 <p className="text-xs text-text-sub mt-1">{exercise.title}</p>
+              </div>
+           </div>
+        </main>
+
+        {/* Footer Fixo com Ações */}
+        <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 z-50 no-print flex justify-center pb-8">
+           <div className="w-full max-w-sm">
+             <button 
+              onClick={() => window.print()}
+              className="w-full h-14 bg-purple-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-glow active:scale-95 transition-all"
+             >
+                <span className="material-symbols-outlined text-xl">print</span>
+                <span className="text-xs uppercase">Imprimir Desenho</span>
+             </button>
+           </div>
+        </footer>
+
+        {/* Layout Otimizado para Impressão (Igual ao ArtesCriativasPage) */}
+        <div className="print-only fixed inset-0 bg-white z-[1000] p-10 flex flex-col items-center justify-between">
+           <div className="w-full flex justify-between items-center border-b-2 border-gray-100 pb-4">
+              <div>
+                 <h1 className="text-xl font-black uppercase text-purple-400 tracking-widest">Atividade de Artes</h1>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">Educa Sense - Artes Criativas</p>
+              </div>
+              <div className="size-12 bg-black text-white flex items-center justify-center font-black rounded-xl">ES</div>
+           </div>
+
+           <img src={exercise.imageUrl} alt="Desenho para Colorir" className="w-full h-auto max-h-[75vh] object-contain" />
+
+           <div className="w-full grid grid-cols-2 gap-8 pt-8 border-t-2 border-gray-100">
+              <div className="border-b border-gray-400 pb-1">
+                 <span className="text-[8px] font-black uppercase text-gray-400">Aluno(a):</span>
+                 <p className="font-bold text-sm ml-2">{exercise.childName}</p>
+              </div>
+              <div className="border-b border-gray-400 pb-1">
+                 <span className="text-[8px] font-black uppercase text-gray-400">Data:</span>
+                 <p className="font-bold text-sm ml-2">____ / ____ / 2025</p>
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- NEW PREVIEW UI FOR QUIZ ---
   return (
-    <div className="flex flex-col min-h-full bg-white dark:bg-background-dark">
-      {/* Header Interativo (Sempre Oculto na Impressão) */}
-      <header className="sticky top-0 z-50 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md p-4 no-print border-b border-gray-100 dark:border-gray-800">
-        <button onClick={() => navigate(-1)} className="size-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 transition-colors hover:bg-gray-200">
+    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
+      {/* Header */}
+      <header className="p-6 pt-10 flex items-center justify-between bg-white dark:bg-surface-dark border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
+        <button onClick={() => navigate('/exercicio-facil/criar')} className="size-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main active:scale-95 transition-all">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <div className="text-center">
-           <h1 className="text-xs font-black uppercase tracking-widest text-primary">Folha de Atividade</h1>
-           <p className="text-[10px] text-text-sub font-bold">{exercise.subject}</p>
-        </div>
-        <button 
-          onClick={handlePrint} 
-          className="size-10 flex items-center justify-center rounded-full bg-primary text-black shadow-glow active:scale-90 transition-transform"
-          title="Imprimir ou Salvar PDF"
-        >
-          <span className="material-symbols-outlined">print</span>
-        </button>
+        <h1 className="text-lg font-black text-center">Atividade Pronta!</h1>
+        <div className="size-10"></div>
       </header>
 
-      {/* ÁREA IMPRESSÍVEL (CONTAINER PRINCIPAL) */}
-      <main className="worksheet-container p-5 md:p-10 pb-40 space-y-6">
-        
-        {/* Cabeçalho Escolar (Visível APENAS na Impressão) */}
-        <div className="print-only mb-8 border-b-2 border-black pb-4">
-           <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-3">
-                 <div className="size-12 bg-black text-white flex items-center justify-center font-black rounded-lg">ES</div>
-                 <div>
-                    <h2 className="text-xl font-black">Educa Sense</h2>
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Programa Exercício Fácil</p>
-                 </div>
-              </div>
-              <div className="text-right text-[10px] font-bold uppercase">
-                 Matéria: {exercise.subject}<br/>
-                 Nível: {exercise.difficulty}
-              </div>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div className="border-b border-black pb-1">
-                 <span className="text-[8px] font-black uppercase">Aluno(a):</span>
-                 <span className="ml-2 font-bold">{exercise.childName}</span>
-              </div>
-              <div className="border-b border-black pb-1">
-                 <span className="text-[8px] font-black uppercase">Data:</span>
-                 <span className="ml-2">____/____/2025</span>
-              </div>
-           </div>
-        </div>
-
-        {/* Banner com Imagem da IA */}
-        {exercise.imageUrl && (
-          <div className="w-full h-56 rounded-[40px] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl no-print">
-             <img src={exercise.imageUrl} alt="Ilustração" className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Imagem para Impressão */}
-        {exercise.imageUrl && (
-          <div className="print-only w-full mb-6">
-             <img src={exercise.imageUrl} alt="Ilustração Atividade" className="w-full h-auto rounded-xl border border-gray-200" />
-          </div>
-        )}
-
-        {/* Título e Texto */}
-        <section className="bg-white dark:bg-surface-dark p-6 md:p-10 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-soft space-y-4 print:shadow-none print:border-none print:p-0">
-           <h2 className="text-3xl font-black leading-tight text-center print:text-left print:text-2xl">{exercise.title}</h2>
-           
-           {storyContent && (
-             <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-3xl relative print:bg-gray-50 print:border print:border-gray-100">
-                <button 
-                  onClick={handlePlayAudio}
-                  className={`absolute -top-4 -right-2 size-12 rounded-2xl flex items-center justify-center shadow-lg transition-all no-print ${playing ? 'bg-orange-400 animate-pulse' : 'bg-primary text-black'}`}
-                >
-                  <span className="material-symbols-outlined">{playing ? 'stop' : 'volume_up'}</span>
-                </button>
-                <p className="text-lg font-medium leading-relaxed italic text-blue-900 dark:text-blue-200 print:text-black print:text-sm">
-                  {storyContent}
-                </p>
-             </div>
-           )}
-
-           <div className="flex flex-wrap justify-center gap-2 no-print">
-              <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-[10px] font-black uppercase tracking-widest">{exercise.grade}</span>
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">{exercise.difficulty}</span>
-           </div>
-
-           <p className="text-center text-xs text-text-sub font-medium px-4 print:text-left print:px-0 print:italic">{objectiveText}</p>
-        </section>
-
-        {/* Questões */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-black print-only mb-4">Questões:</h3>
-          {exercise.questions.map((q, idx) => (
-            <div key={idx} className="question-box bg-white dark:bg-surface-dark p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 print:rounded-none print:border-b print:p-4">
-               <div className="flex gap-4 items-start">
-                  <span className="size-8 rounded-xl bg-primary text-black flex items-center justify-center font-black shrink-0 print:bg-black print:text-white">{idx + 1}</span>
-                  <div className="space-y-4 flex-1">
-                    <p className="text-lg font-bold print:text-sm">{q.text}</p>
-                    {q.options ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {q.options.map((opt, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <div className="size-5 rounded-full border-2 border-gray-200 print:border-black"></div>
-                            <span className="text-sm font-medium print:text-xs">{opt}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="h-24 w-full border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl print:border-black print:h-32"></div>
-                    )}
-                  </div>
-               </div>
+      <main className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto pb-32">
+        {/* Card de Resumo */}
+        <div className="bg-white dark:bg-surface-dark p-6 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="size-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
+               <span className="material-symbols-outlined text-3xl">school</span>
             </div>
-          ))}
-        </div>
+            <div>
+              <p className="text-xs font-bold text-text-sub uppercase tracking-wider">Matéria</p>
+              <h2 className="text-xl font-black text-text-main">{exercise.subject}</h2>
+            </div>
+          </div>
 
-        {/* Rodapé da Folha (Apenas Impressão) */}
-        <div className="print-only mt-20 text-center border-t border-gray-200 pt-4 text-[8px] text-gray-400">
-           Gerado automaticamente pelo Educa Sense - IA Educacional. © 2025
+          <div className="space-y-4">
+             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/20 rounded-2xl">
+                <div className="flex items-center gap-3">
+                   <span className="material-symbols-outlined text-gray-400">signal_cellular_alt</span>
+                   <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Dificuldade</span>
+                </div>
+                <span className="px-3 py-1 bg-white dark:bg-surface-dark rounded-lg text-xs font-black uppercase shadow-sm border border-gray-100 dark:border-gray-700">
+                  {exercise.difficulty}
+                </span>
+             </div>
+
+             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/20 rounded-2xl">
+                <div className="flex items-center gap-3">
+                   <span className="material-symbols-outlined text-gray-400">quiz</span>
+                   <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Questões</span>
+                </div>
+                <span className="text-sm font-black">{exercise.questions?.length || 0}</span>
+             </div>
+
+             <div className="p-4 bg-gray-50 dark:bg-black/20 rounded-2xl">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Objetivo Pedagógico</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 italic">"{exercise.pedagogicalObjective}"</p>
+             </div>
+          </div>
         </div>
       </main>
 
-      {/* Botões Flutuantes (Ocultos na Impressão) */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white dark:from-background-dark via-white dark:via-background-dark to-transparent z-40 no-print">
-        <div className="max-w-md mx-auto flex gap-3">
-           <button 
-             onClick={handlePrint}
-             className="flex-1 h-16 bg-white dark:bg-gray-800 text-black dark:text-white border-2 border-gray-100 dark:border-gray-700 font-black rounded-2xl shadow-soft flex items-center justify-center gap-3 active:scale-95 transition-transform"
-           >
-             <span className="material-symbols-outlined">print</span>
-             Imprimir
-           </button>
-           <button 
-             onClick={() => navigate(`/exercicio-facil/quiz/${exercise.id}`)}
-             className="flex-[2] h-16 bg-primary text-black font-black text-xl rounded-2xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-3"
-           >
-             <span className="material-symbols-outlined">rocket_launch</span>
-             Modo Quiz
-           </button>
+      {/* Footer com CTAs */}
+      <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 z-50 pb-8">
+        <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
+          <button 
+            onClick={() => navigate(`/exercicio-facil/quiz/${exercise.id}`)}
+            className="w-full h-14 bg-primary text-black rounded-2xl font-black text-lg shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">play_circle</span>
+            Iniciar Quiz
+          </button>
+          
+          <button 
+            onClick={() => {
+              if (Entitlements.isFeatureAllowed('can_print_activities')) {
+                navigate(`/exercicio-facil/print/${exercise.id}`);
+              } else {
+                setShowPaywall(true);
+              }
+            }}
+            className="w-full h-14 bg-white dark:bg-surface-dark text-text-main border-2 border-gray-100 dark:border-gray-700 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">print</span>
+            Imprimir Atividade
+            {!Entitlements.isFeatureAllowed('can_print_activities') && (
+               <span className="material-symbols-outlined text-gray-400 text-sm">lock</span>
+            )}
+          </button>
         </div>
-      </div>
+      </footer>
+      
+      <PaywallModal 
+        isOpen={showPaywall} 
+        onClose={() => setShowPaywall(false)} 
+        featureName="Impressão de Atividades"
+      />
     </div>
   );
 };

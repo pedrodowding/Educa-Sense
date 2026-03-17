@@ -1,0 +1,33 @@
+Data: 2026-01-27
+Tarefa: Implementação do Mural da Escola e Logs de Auditoria
+
+Alterações Realizadas:
+1. Banco de Dados:
+   - Criado script 'supabase_school_wall_audit.sql' para tabela 'school_bulletin_logs' e políticas RLS.
+   - Script 'supabase_school_expansion.sql' (existente) define 'school_bulletin_posts'.
+
+2. Tipos (types.ts):
+   - Adicionadas interfaces 'SchoolBulletinPost' e 'BulletinLog'.
+   - Adicionado tipo 'BulletinPostType'.
+   - Recuperadas interfaces perdidas durante manipulação de arquivo (School, SchoolMember, etc.).
+
+3. Serviços (schoolService.ts):
+   - Implementado 'createBulletinPost' com log de auditoria automático.
+   - Implementado 'deleteBulletinPost' com log de auditoria.
+   - Implementado 'togglePinBulletinPost' com log de auditoria.
+   - Implementado 'getBulletinLogs' para visualização de logs por Diretores/Professores.
+   - Atualizado 'getBulletinPosts' para suportar novos requisitos.
+
+4. UI (Frontend):
+   - Criada página 'SchoolWallPage.tsx' com:
+     - Visualização de posts (usando BulletinBoard existente).
+     - Visualização de logs de auditoria (apenas para Staff).
+     - Lógica de carregamento de escola baseada no usuário (Director/Teacher/Guardian).
+   - Atualizado 'DesktopHeader.tsx' e 'BottomNavWrapper.tsx' para incluir link "Mural".
+   - Registrada rota '/school/wall' em 'App.tsx'.
+
+Próximos Passos:
+- Executar scripts SQL no Supabase.
+- Testar fluxo de criação de posts por Diretor/Professor.
+- Validar visualização de logs.
+- Refinar lógica de seleção de escola para Guardians com múltiplos filhos em escolas diferentes.

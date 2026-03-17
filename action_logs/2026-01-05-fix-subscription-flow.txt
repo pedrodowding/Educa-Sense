@@ -1,0 +1,59 @@
+# Action Log: Correção do Fluxo de Assinatura
+Date: 2026-01-05
+
+## Problemas Identificados
+1. **Divergência de Preço:** Backend definia 29.90, mas frontend tinha valores hardcoded (possivelmente antigos ou em mocks) e user relatou ver 19.90.
+2. **Retorno Inconsistente:** Link "Voltar à loja" do Mercado Pago caía em rota não tratada (`/assinatura/erro`) ou genérica.
+3. **Falta de Feedback:** Telas de pendente/erro não existiam ou não eram exibidas.
+4. **Restore:** Botão "Restaurar Compra" não funcionava.
+
+## Alterações Realizadas
+
+### 1. Unificação de Preço
+- **Arquivo:** `config/plans.ts`
+  - Adicionado campo `price: 29.90` na configuração do plano PRO.
+- **Arquivo:** `pages/SubscriptionPage.tsx`
+  - Atualizado para usar `PLAN_CONFIG.PRO.price` em vez de valor hardcoded.
+- **Arquivo:** `pages/LandingPage.tsx`
+  - Atualizado para usar `PLAN_CONFIG.PRO.price`.
+- **Backend:** Confirmado que `mp-create-checkout/index.ts` usa `29.90`.
+
+### 2. Rotas de Retorno (Checkout Flow)
+- **Arquivo:** `App.tsx`
+  - Adicionadas rotas explícitas:
+    - `/assinatura/sucesso` -> `BillingReturnPage`
+    - `/assinatura/erro` -> `BillingReturnPage`
+    - `/assinatura/pendente` -> `BillingReturnPage`
+- **Arquivo:** `pages/BillingReturnPage.tsx`
+  - Refatorado para detectar o status inicial baseado na URL (`/erro` = failure, `/pendente` = pending).
+  - Adicionadas UIs específicas para:
+    - **Sucesso:** "Assinatura Ativada!" (com polling de confirmação).
+    - **Erro/Falha:** "Pagamento não realizado" + Botão Tentar Novamente.
+    - **Pendente:** "Pagamento Pendente" + Instruções.
+
+### 3. Restaurar Compra
+- **Arquivo:** `pages/SubscriptionPage.tsx`
+  - Implementada função `handleRestore` que consulta o perfil do usuário no Supabase (`profiles.subscription_status`).
+  - Se ativo, atualiza o estado local e recarrega a página.
+
+### 4. Confirmação Server-Side
+- **Arquivo:** `supabase/functions/mp-webhook/index.ts`
+  - Verificado que já implementa validação de assinatura e atualização de status no banco (`profiles` table) ao receber `payment.approved`.
+
+## Como Testar
+
+1. **Preço:**
+   - Acesse `/assinatura` e verifique se exibe **R$ 29,90**.
+   - Clique em "Assinar Agora" e verifique se o Mercado Pago mostra **R$ 29,90**.
+
+2. **Fluxo de Sucesso:**
+   - Realize o pagamento (ou use cartão de teste do MP).
+   - Ao ser redirecionado para `/assinatura/sucesso`, aguarde o polling confirmar a ativação e redirecionar para o Dashboard.
+
+3. **Fluxo de Falha/Cancelamento:**
+   - No Mercado Pago, clique em "Voltar à loja" ou cancele.
+   - Verifique se cai em `/assinatura/erro` com a mensagem "Pagamento não realizado" e opção de tentar novamente.
+
+4. **Restaurar Compra:**
+   - Se já tiver pago, clique em "Restaurar Compra" na tela de planos.
+   - Deve exibir "Assinatura restaurada com sucesso!".

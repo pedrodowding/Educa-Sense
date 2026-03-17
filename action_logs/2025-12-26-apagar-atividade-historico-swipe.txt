@@ -1,0 +1,26 @@
+Data: 2025-12-26
+Assunto: Apagar atividade no histórico (arrastar para o lado)
+
+O que foi feito
+- Adicionado gesto de arrastar para a esquerda para revelar ação "Apagar" na lista do histórico.
+- Exclusão integrada ao Supabase via hook de histórico, com rollback local em caso de erro.
+- Adicionadas policies de UPDATE/DELETE para a tabela exercises no script do banco.
+
+Arquivos alterados
+- pages/HistoryPage.tsx
+- pages/components/HistorySwipeRow.tsx
+- hooks/useHistory.ts
+- App.tsx
+- supabase_schema.sql
+
+Como usar
+- Na tela "Histórico", arraste uma atividade para a esquerda e toque em "Apagar".
+
+Observações de banco (importante)
+- Para a exclusão funcionar no Supabase com RLS, rode/atualize as policies de exercises contidas em supabase_schema.sql:
+  - "Guardians can update their children's exercises"
+  - "Guardians can delete their children's exercises"
+
+Possíveis próximos passos
+- Trocar o confirm() por um modal nativo do app (visual consistente e menos intrusivo).
+- Implementar "Desfazer" (undo) por poucos segundos para reduzir exclusões acidentais.

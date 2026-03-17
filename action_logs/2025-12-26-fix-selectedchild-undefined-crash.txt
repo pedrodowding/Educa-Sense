@@ -1,0 +1,36 @@
+Data: 2025-12-26
+
+O que aconteceu
+- A aplicação quebrou com: TypeError: undefined is not an object (evaluating 'selectedChild.id')
+- Isso ocorre quando a tela é aberta com a lista de crianças vazia (ou ainda carregando), mas o estado inicia com children[0] e o código acessa selectedChild.id.
+
+O que foi feito
+- Ajustadas telas para suportarem children vazio/selectedChild nulo sem crash:
+  - CreateExercisePage
+  - InglesTodoDiaPage
+  - LeituraGuiadaPage
+  - CheckInPage
+  - BehaviorDashboardPage
+  - ManageGoalsPage
+- Adicionado fallback visual quando não há estudante cadastrado, com CTA para /settings.
+- Adicionado auto-select quando children passa a ter itens (useEffect) nas telas principais.
+
+Arquivos alterados
+- pages/CreateExercisePage.tsx
+- pages/InglesTodoDiaPage.tsx
+- pages/LeituraGuiadaPage.tsx
+- pages/CheckInPage.tsx
+- pages/BehaviorDashboardPage.tsx
+- pages/ManageGoalsPage.tsx
+
+Como validar
+- Abrir as telas acima sem crianças cadastradas e confirmar que não quebra.
+- npm run check
+
+Possíveis próximos passos
+- Padronizar esse fallback em um componente compartilhado para reduzir repetição.
+
+Análise (escalabilidade/manutenibilidade)
+Esse ajuste remove um crash de runtime comum em apps com dados assíncronos: depender de children[0] assume que sempre existe ao montar o componente. Ao tratar explicitamente o estado nulo e renderizar um fallback, evitamos erros em produção e melhoramos a experiência em cenários reais (primeiro acesso, conta nova, carregamento parcial).
+
+Como evolução, dá para extrair um componente reutilizável de “estado vazio” para reduzir duplicação e garantir consistência visual, mantendo o código mais fácil de manter conforme novas telas forem adicionadas.

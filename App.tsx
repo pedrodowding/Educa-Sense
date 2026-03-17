@@ -1,189 +1,304 @@
 
-import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ProgramPage from './pages/ProgramPage';
-import CreateExercisePage from './pages/CreateExercisePage';
-import ResultPage from './pages/ResultPage';
-import QuizPage from './pages/QuizPage';
-import HistoryPage from './pages/HistoryPage';
-import ReportsPage from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import GuardianProfilePage from './pages/GuardianProfilePage';
-import ProgramsListPage from './pages/ProgramsListPage';
-import StudentDashboardPage from './pages/StudentDashboardPage';
-import LeituraGuiadaPage from './pages/LeituraGuiadaPage';
-import ArtesCriativasPage from './pages/ArtesCriativasPage';
-import InglesTodoDiaPage from './pages/InglesTodoDiaPage';
-import BehaviorDashboardPage from './pages/BehaviorDashboardPage';
-import CheckInPage from './pages/CheckInPage';
-import ActionPlanPage from './pages/ActionPlanPage';
-import ChildDetailPage from './pages/ChildDetailPage';
-import ManageGoalsPage from './pages/ManageGoalsPage';
-import TeacherDashboardPage from './pages/TeacherDashboardPage';
-import ClassDetailsPage from './pages/ClassDetailsPage';
-import TeacherCreateActivityPage from './pages/TeacherCreateActivityPage';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SelectedChildProvider } from './contexts/SelectedChildContext';
+import { StudentProvider } from './contexts/StudentContext';
+import { FamilyChildrenProvider } from './contexts/FamilyChildrenContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { DesktopHeader } from './components/DesktopHeader';
+import { BottomNavWrapper } from './components/BottomNavWrapper';
+import { ConnectivityBanner } from './components/ConnectivityBanner';
+import { RoleManager } from './services/roleManager';
+import { useChildren } from './hooks/useChildren';
+import { useHistory } from './hooks/useHistory';
+import { useBehavior } from './hooks/useBehavior';
+import { GameSessionProvider } from './contexts/GameSessionContext';
+import { GameLayout } from './layouts/GameLayout';
+
+// Lazy load components
+const StoryBookPage = lazy(() => import('./pages/student/stories/StoryBookPage').then(module => ({ default: module.StoryBookPage })));
+const GameHubPage = lazy(() => import('./pages/games/GameHubPage').then(module => ({ default: module.GameHubPage })));
+const MemoryGamePage = lazy(() => import('./pages/games/MemoryGamePage').then(module => ({ default: module.MemoryGamePage })));
+const PegaCertoGamePage = lazy(() => import('./pages/games/PegaCertoGamePage').then(module => ({ default: module.PegaCertoGamePage })));
+const RobotGamePage = lazy(() => import('./pages/games/RobotGamePage').then(module => ({ default: module.RobotGamePage })));
+const CofreGamePage = lazy(() => import('./pages/games/CofreGamePage').then(module => ({ default: module.CofreGamePage })));
+
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ProgramPage = lazy(() => import('./pages/ProgramPage'));
+const CreateExercisePage = lazy(() => import('./pages/CreateExercisePage'));
+const ResultPage = lazy(() => import('./pages/ResultPage'));
+const PrintExercisePage = lazy(() => import('./pages/PrintExercisePage'));
+const QuizPage = lazy(() => import('./pages/QuizPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
+const AdminExclusivePage = lazy(() => import('./pages/admin/AdminExclusivePage'));
+const GuardianProfilePage = lazy(() => import('./pages/GuardianProfilePage'));
+const ProgramsListPage = lazy(() => import('./pages/ProgramsListPage'));
+const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage'));
+const LeituraGuiadaPage = lazy(() => import('./pages/LeituraGuiadaPage'));
+const ReadingResultPage = lazy(() => import('./pages/ReadingResultPage'));
+const ArtesCriativasPage = lazy(() => import('./pages/ArtesCriativasPage'));
+const InglesTodoDiaPage = lazy(() => import('./pages/InglesTodoDiaPage'));
+const BehaviorDashboardPage = lazy(() => import('./pages/BehaviorDashboardPage'));
+const CheckInPage = lazy(() => import('./pages/CheckInPage'));
+const ActionPlanPage = lazy(() => import('./pages/ActionPlanPage'));
+const ChildDetailPage = lazy(() => import('./pages/ChildDetailPage'));
+const ManageGoalsPage = lazy(() => import('./pages/ManageGoalsPage'));
+const TeacherDashboardPage = lazy(() => import('./pages/teacher/TeacherDashboardPage'));
+const TeacherClassesPage = lazy(() => import('./pages/teacher/TeacherClassesPage'));
+const TeacherAssignmentsPage = lazy(() => import('./pages/teacher/TeacherAssignmentsPage'));
+const DirectorDashboardPage = lazy(() => import('./pages/director/DirectorDashboardPage'));
+const DirectorTeachersPage = lazy(() => import('./pages/director/DirectorTeachersPage'));
+const DirectorImportPage = lazy(() => import('./pages/director/DirectorImportPage'));
+const ClassDetailsPage = lazy(() => import('./pages/ClassDetailsPage'));
+const TeacherCreateActivityPage = lazy(() => import('./pages/TeacherCreateActivityPage'));
+const DailyPlanPage = lazy(() => import('./pages/DailyPlanPage'));
+const DailySummaryPage = lazy(() => import('./pages/DailySummaryPage'));
+const AlbumPage = lazy(() => import('./pages/AlbumPage'));
+const CreativeMissionPage = lazy(() => import('./pages/CreativeMissionPage'));
+const CorrectPhotoPage = lazy(() => import('./pages/CorrectPhotoPage'));
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
+const BillingReturnPage = lazy(() => import('./pages/BillingReturnPage'));
+const AuthConfirmedPage = lazy(() => import('./pages/AuthConfirmedPage'));
+const AuthResetPage = lazy(() => import('./pages/AuthResetPage'));
+const CentralHistoryPage = lazy(() => import('./pages/CentralHistoryPage'));
+const SchoolWallPage = lazy(() => import('./pages/SchoolWallPage').then(module => ({ default: module.SchoolWallPage })));
+const FriendsPage = lazy(() => import('./pages/student/friends/FriendsPage').then(module => ({ default: module.FriendsPage })));
+const StudentInboxPage = lazy(() => import('./pages/student/StudentInboxPage').then(module => ({ default: module.StudentInboxPage })));
+const FriendProfilePage = lazy(() => import('./pages/student/friends/FriendProfilePage').then(module => ({ default: module.FriendProfilePage })));
+
+const StudentMessagesInboxPage = lazy(() => import('./pages/student/messages/StudentMessagesInboxPage').then(module => ({ default: module.StudentMessagesInboxPage })));
+const StudentConversationPage = lazy(() => import('./pages/student/messages/StudentConversationPage').then(module => ({ default: module.StudentConversationPage })));
+
+// Public Pages (SEO)
+const AboutPage = lazy(() => import('./pages/public/AboutPage').then(module => ({ default: module.AboutPage })));
+const HowItWorksPage = lazy(() => import('./pages/public/HowItWorksPage').then(module => ({ default: module.HowItWorksPage })));
+const ForParentsPage = lazy(() => import('./pages/public/ForParentsPage').then(module => ({ default: module.ForParentsPage })));
+const ForStudentsPage = lazy(() => import('./pages/public/ForStudentsPage').then(module => ({ default: module.ForStudentsPage })));
+const SecurityPage = lazy(() => import('./pages/public/SecurityPage').then(module => ({ default: module.SecurityPage })));
+const ContactPage = lazy(() => import('./pages/public/ContactPage').then(module => ({ default: module.ContactPage })));
+
 import { Child, Exercise, Guardian, AuthState, DailyCheckIn, BehaviorGoal, Subject, ClassGroup } from './types';
+import { fetchTeacherClassrooms } from './services/classroomService';
+import { supabase } from './services/supabase';
 
-const App: React.FC = () => {
-  const [auth, setAuth] = useState<AuthState>(() => {
-    const saved = localStorage.getItem('educasense_auth');
-    return saved ? JSON.parse(saved) : { user: null, isAuthenticated: false };
-  });
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-background-dark">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
-  const [children, setChildren] = useState<Child[]>(() => {
-    const saved = localStorage.getItem('educasense_children');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: '1', name: 'Lucas', age: 8, grade: '3º Ano', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas', accessCode: 'LUC-452', xp: 120, stars: 45, streak: 3, difficultySubjects: [Subject.MATH] },
-      { id: '2', name: 'Sofia', age: 5, grade: 'Pré-escola', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia', accessCode: 'SOF-128', xp: 50, stars: 12, streak: 1, difficultySubjects: [Subject.PORTUGUESE] }
-    ];
-  });
-
-  const [classes] = useState<ClassGroup[]>([
-    { id: 'c1', name: '3º Ano B', grade: '3º Ano', studentCount: 24, engagement: 82 },
-    { id: 'c2', name: 'Pré-escola A', grade: 'Pré-escola', studentCount: 18, engagement: 95 }
-  ]);
-
-  const [history, setHistory] = useState<Exercise[]>(() => {
-    const saved = localStorage.getItem('educasense_history_v5');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [checkIns, setCheckIns] = useState<DailyCheckIn[]>([]);
-  const [goals, setGoals] = useState<BehaviorGoal[]>([]);
-
+const EducaSenseApp: React.FC = () => {
+  console.log("[boot] App render", { t: Date.now() });
+  const location = useLocation();
+  console.log("[route] layout render", { path: location.pathname, hash: location.hash, t: Date.now() });
+  
+  // Analytics: Log Page Visits
   useEffect(() => {
-    localStorage.setItem('educasense_auth', JSON.stringify(auth));
-    localStorage.setItem('educasense_children', JSON.stringify(children));
-    localStorage.setItem('educasense_history_v5', JSON.stringify(history));
-  }, [auth, children, history]);
-
-  const login = (email: string, role: 'guardian' | 'teacher' = 'guardian', name?: string) => {
-    setAuth({
-      isAuthenticated: true,
-      user: { 
-        id: role === 'teacher' ? 't1' : 'u1', 
-        name: name || (role === 'teacher' ? 'Prof. Ricardo' : 'Usuário'), 
-        email, 
-        plan: 'Premium', 
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${role}`,
-        role 
+    const logVisit = async () => {
+      // Simple debounce or check to avoid duplicate logs if strict mode double-invokes
+      try {
+        // Check if analytics table exists or fail silently
+        // Using Promise.race to avoid hanging if analytics is slow/blocked
+        // Analytics should be strictly fire-and-forget
+        const analyticsPromise = supabase.from('page_visits').insert({
+          page_path: location.pathname
+        }).then(({ error }) => {
+           if (error) {
+              // Silently ignore 404 or missing table errors for analytics
+              if (error.code === '404' || error.code === 'PGRST204') return;
+              console.warn('Analytics Error (non-critical):', error.message);
+           }
+        });
+        
+        // Don't await analytics
+        // analyticsPromise.catch(() => {});
+        
+      } catch (err) {
+        // Silently fail for analytics
       }
-    });
+    };
+    
+    if (location.pathname) {
+      logVisit();
+    }
+  }, [location.pathname]);
+
+  const { user, profile, updateProfile, signOut, loading: authLoading } = useAuth();
+  const { children, updateChild, addChild, loading: childrenLoading } = useChildren();
+  const isAuthPending = authLoading || (!!user && !profile);
+  const { history, saveToHistory, updateExercise, deleteExercise } = useHistory();
+  const { checkIns, goals, addCheckIn, addGoal, deleteGoal, updateGoalProgress } = useBehavior();
+  
+  const auth: AuthState = {
+    isAuthenticated: !!user,
+    user: profile
   };
 
-  const logout = () => {
-    setAuth({ user: null, isAuthenticated: false });
+  const [classes, setClasses] = useState<ClassGroup[]>([]);
+
+  useEffect(() => {
+    if (profile?.role === 'teacher') {
+      fetchTeacherClassrooms(profile.id).then(setClasses);
+    }
+  }, [profile]);
+
+  const logout = async () => {
+    await signOut();
     window.location.hash = '#/login';
   };
 
-  const saveToHistory = (exercise: Exercise) => setHistory(prev => [exercise, ...prev]);
-
-  const updateChild = (id: string, updates: Partial<Child>) => {
-    setChildren(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  };
-
-  const addCheckIn = (checkIn: DailyCheckIn) => setCheckIns(prev => [checkIn, ...prev]);
-  const addGoal = (goal: BehaviorGoal) => setGoals(prev => [goal, ...prev]);
-  const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
-
-  return (
-    <HashRouter>
-      <div className="flex justify-center bg-gray-100 min-h-screen">
-        <div className="w-full max-w-md bg-background-light dark:bg-background-dark shadow-2xl relative flex flex-col min-h-screen overflow-hidden">
-          
-          <div className="bg-yellow-400 text-black text-[9px] font-black uppercase text-center py-1 tracking-widest z-[100] no-print">
-            Modo Demonstração • Dados Simulados
-          </div>
-
-          <div className="flex-1 overflow-y-auto no-scrollbar">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage onLogin={login} children={children} />} />
-              <Route path="/student" element={<StudentDashboardPage children={children} history={history} onUpdateChild={updateChild} />} />
-              
-              <Route path="/perfil" element={auth.isAuthenticated ? <GuardianProfilePage guardian={auth.user} onUpdate={() => {}} onLogout={logout} /> : <Navigate to="/login" />} />
-
-              <Route path="/dashboard" element={auth.isAuthenticated && auth.user?.role === 'guardian' ? <DashboardPage guardian={auth.user} children={children} history={history} /> : <Navigate to="/login" />} />
-              <Route path="/child/:id" element={<ChildDetailPage children={children} history={history} />} />
-              <Route path="/settings" element={auth.isAuthenticated ? <SettingsPage children={children} onUpdateChild={updateChild} onAddChild={() => {}} guardian={auth.user} /> : <Navigate to="/login" />} />
-              
-              <Route path="/teacher" element={auth.isAuthenticated && auth.user?.role === 'teacher' ? <TeacherDashboardPage teacher={auth.user} classes={classes} /> : <Navigate to="/login" />} />
-              <Route path="/teacher/class/:id" element={<ClassDetailsPage classes={classes} children={children} history={history} />} />
-              <Route path="/teacher/create" element={<TeacherCreateActivityPage teacher={auth.user} onSave={saveToHistory} />} />
-
-              {/* Roteamento de Programas IA */}
-              <Route path="/programas" element={<ProgramsListPage />} />
-              <Route path="/exercicio-facil" element={<ProgramPage />} />
-              <Route path="/exercicio-facil/criar" element={<CreateExercisePage children={children} onSave={saveToHistory} />} />
-              <Route path="/exercicio-facil/resultado/:id" element={<ResultPage history={history} />} />
-              <Route path="/exercicio-facil/quiz/:id" element={<QuizPage history={history} onUpdate={() => {}} children={children} onUpdateChild={updateChild} />} />
-              
-              {/* Novas rotas de programas fixadas */}
-              <Route path="/leitura-guiada" element={<LeituraGuiadaPage children={children} onSave={saveToHistory} />} />
-              <Route path="/artes-criativas" element={<ArtesCriativasPage children={children} onSave={saveToHistory} />} />
-              <Route path="/ingles-todo-dia" element={<InglesTodoDiaPage children={children} onSave={saveToHistory} />} />
-              
-              {/* Rotas de Rotina */}
-              <Route path="/rotina" element={<BehaviorDashboardPage children={children} checkIns={checkIns} goals={goals} />} />
-              <Route path="/rotina/checkin" element={<CheckInPage children={children} onSave={addCheckIn} />} />
-              <Route path="/rotina/plano" element={<ActionPlanPage children={children} checkIns={checkIns} />} />
-              <Route path="/rotina/metas" element={<ManageGoalsPage children={children} goals={goals} onAddGoal={addGoal} onDeleteGoal={deleteGoal} />} />
-
-              <Route path="/reports" element={<ReportsPage history={history} children={children} />} />
-              
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </div>
-          <BottomNavWrapper isAuthenticated={auth.isAuthenticated} role={auth.user?.role} />
-        </div>
-      </div>
-    </HashRouter>
-  );
-};
-
-const BottomNavWrapper: React.FC<{ isAuthenticated: boolean, role?: string }> = ({ isAuthenticated, role }) => {
-  const location = useLocation();
-  const hidePaths = ['/', '/login', '/student', '/rotina/checkin', '/teacher/create'];
-  const shouldHide = hidePaths.some(path => location.pathname === path || location.pathname.startsWith('/exercicio-facil/quiz/') || location.pathname.startsWith('/child/'));
+  const hidePaths = ['/', '/login', '/student', '/rotina/checkin', '/teacher/create', '/exercicio-facil/criar', '/admin/gestao-exclusiva', '/corrigir-foto', '/assinatura', '/billing/return', '/sobre', '/como-funciona', '/para-pais', '/para-alunos', '/seguranca-e-privacidade', '/contato'];
+  const normalizePath = (p: string) => p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p;
+  const currentPath = normalizePath(location.pathname);
   
-  if (!isAuthenticated || shouldHide) return null;
+  const shouldHideNav = hidePaths.some(path => currentPath === path) || 
+                        location.pathname.startsWith('/exercicio-facil/quiz/') || 
+                        location.pathname.startsWith('/child/');
+  const showMobileNav = auth.isAuthenticated && !shouldHideNav && auth.user?.role !== 'admin';
+
+  if (isAuthPending) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-400">
+        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-sm font-bold uppercase tracking-widest">Iniciando EducaSense...</p>
+      </div>
+    );
+  }
 
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-[60] bg-white/95 dark:bg-surface-dark/95 border-t border-gray-200 dark:border-gray-800 backdrop-blur-lg pt-2 pb-safe px-2 no-print">
-      {role === 'teacher' ? (
-        <div className="grid grid-cols-4 h-16 items-center">
-          <NavButton icon="dashboard" label="Turmas" to="/teacher" />
-          <NavButton icon="add_box" label="Criar" to="/teacher/create" />
-          <NavButton icon="analytics" label="Insights" to="/reports" />
-          <NavButton icon="account_circle" label="Perfil" to="/perfil" />
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-sans text-text-main">
+      <ConnectivityBanner />
+      <div className={`flex flex-col min-h-screen ${showMobileNav ? 'pb-16 md:pb-0' : ''}`}>
+        <DesktopHeader isAuthenticated={auth.isAuthenticated} role={auth.user?.role} />
+        
+        <div className="flex-1 flex flex-col">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public SEO Pages */}
+              <Route path="/sobre" element={<AboutPage />} />
+              <Route path="/como-funciona" element={<HowItWorksPage />} />
+              <Route path="/para-pais" element={<ForParentsPage />} />
+              <Route path="/para-alunos" element={<ForStudentsPage />} />
+              <Route path="/seguranca-e-privacidade" element={<SecurityPage />} />
+              <Route path="/contato" element={<ContactPage />} />
+
+              <Route path="/" element={
+                auth.isAuthenticated ? (
+                  auth.user?.role === 'teacher' ? <Navigate to="/teacher" /> : 
+                  auth.user?.role === 'admin' ? <Navigate to="/admin/gestao-exclusiva" /> :
+                  auth.user?.role === 'director' ? <Navigate to="/director/dashboard" /> :
+                  <Navigate to="/dashboard" />
+                ) : <LandingPage />
+              } />
+              <Route path="/login" element={!auth.isAuthenticated ? <LoginPage childrenList={children} /> : <Navigate to="/" />} />
+            <Route path="/auth/confirmed" element={<AuthConfirmedPage />} />
+            <Route path="/auth/reset" element={<AuthResetPage />} />
+            <Route path="/student" element={<StudentDashboardPage children={children} history={history} onUpdateChild={updateChild} />} />
+            <Route path="/student/stories" element={<StoryBookPage />} />
+            <Route path="/student/friends" element={<FriendsPage />} />
+            <Route path="/student/inbox" element={<StudentInboxPage />} />
+            <Route path="/student/friends/:friendId" element={<FriendProfilePage />} />
+            <Route path="/student/messages" element={<StudentMessagesInboxPage />} />
+            <Route path="/student/messages/:friendId" element={<StudentConversationPage />} />
+            
+            <Route path="/perfil" element={<ProtectedRoute><GuardianProfilePage guardian={auth.user} onUpdate={updateProfile} onLogout={logout} /></ProtectedRoute>} />
+
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['guardian']}><DashboardPage guardian={auth.user} children={children} history={history} /></ProtectedRoute>} />
+            <Route path="/plano-hoje" element={<DailyPlanPage />} />
+            <Route path="/resumo-hoje" element={<DailySummaryPage />} />
+            <Route path="/meu-album" element={<AlbumPage />} />
+            <Route path="/missao-criativa" element={<CreativeMissionPage />} />
+            
+            {/* Hub de Jogos (Sprint HubGames 1) */}
+            <Route path="/hora-do-jogo" element={
+              <GameSessionProvider>
+                <GameLayout />
+              </GameSessionProvider>
+            }>
+              <Route index element={<GameHubPage />} />
+              <Route path="memory" element={<MemoryGamePage />} />
+              <Route path="coleta" element={<PegaCertoGamePage />} />
+              <Route path="robo" element={<RobotGamePage />} />
+              <Route path="cofre" element={<CofreGamePage />} />
+            </Route>
+
+            <Route path="/corrigir-foto" element={<CorrectPhotoPage />} />
+            <Route path="/assinatura" element={<SubscriptionPage />} />
+            <Route path="/assinatura/sucesso" element={<BillingReturnPage />} />
+            <Route path="/assinatura/erro" element={<BillingReturnPage />} />
+            <Route path="/assinatura/pendente" element={<BillingReturnPage />} />
+            <Route path="/child/:id" element={<ChildDetailPage children={children} history={history} />} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage children={children} onUpdateChild={updateChild} onAddChild={addChild} guardian={auth.user} /></ProtectedRoute>} />
+            <Route path="/admin/gestao-exclusiva" element={<ProtectedRoute allowedRoles={['admin']}><AdminExclusivePage /></ProtectedRoute>} />
+            
+            {/* SCHOOL MODULE ROUTES */}
+            <Route path="/director/dashboard" element={<ProtectedRoute allowedRoles={['director']}><DirectorDashboardPage /></ProtectedRoute>} />
+            <Route path="/director/professores" element={<ProtectedRoute allowedRoles={['director']}><DirectorTeachersPage /></ProtectedRoute>} />
+
+            <Route path="/school/wall" element={<ProtectedRoute><SchoolWallPage /></ProtectedRoute>} />
+
+            <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboardPage /></ProtectedRoute>} />
+            <Route path="/teacher/classes" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherClassesPage /></ProtectedRoute>} />
+            <Route path="/teacher/assignments" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherAssignmentsPage /></ProtectedRoute>} />
+
+            <Route path="/teacher/class/:id" element={<ClassDetailsPage classes={classes} children={children} history={history} />} />
+            <Route path="/teacher/create" element={<TeacherCreateActivityPage teacher={auth.user} onSave={saveToHistory} />} />
+
+            {/* Roteamento de Programas IA */}
+            <Route path="/programas" element={<ProgramsListPage />} />
+            <Route path="/exercicio-facil" element={<ProgramPage />} />
+            <Route path="/exercicio-facil/criar" element={<CreateExercisePage children={children} onSave={saveToHistory} />} />
+            <Route path="/exercicio-facil/historico" element={<HistoryPage history={history} onDeleteExercise={deleteExercise} />} />
+            <Route path="/exercicio-facil/resultado/:id" element={<ResultPage history={history} />} />
+            <Route path="/exercicio-facil/print/:id" element={<PrintExercisePage history={history} />} />
+            <Route path="/exercicio-facil/quiz/:id" element={<QuizPage history={history} onUpdate={updateExercise} children={children} onUpdateChild={updateChild} />} />
+            
+            {/* Novas rotas de programas fixadas */}
+            <Route path="/leitura-guiada" element={<LeituraGuiadaPage children={children} onSave={saveToHistory} />} />
+            <Route path="/leitura-guiada/resultado/:id" element={<ReadingResultPage history={history} />} />
+            <Route path="/artes-criativas" element={<ArtesCriativasPage children={children} onSave={saveToHistory} />} />
+            <Route path="/ingles-todo-dia" element={<InglesTodoDiaPage children={children} onSave={saveToHistory} />} />
+            
+            {/* Rotas de Rotina */}
+            <Route path="/rotina" element={<BehaviorDashboardPage children={children} checkIns={checkIns} goals={goals} onUpdateGoal={updateGoalProgress} />} />
+            <Route path="/rotina/checkin" element={<CheckInPage children={children} onSave={addCheckIn} />} />
+            <Route path="/rotina/plano" element={<ActionPlanPage children={children} checkIns={checkIns} />} />
+            <Route path="/rotina/metas" element={<ManageGoalsPage children={children} goals={goals} onAddGoal={addGoal} onDeleteGoal={deleteGoal} />} />
+
+            <Route path="/reports" element={<ReportsPage history={history} children={children} />} />
+            
+            <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Suspense>
         </div>
-      ) : (
-        <div className="grid grid-cols-5 h-16 items-center">
-          <NavButton icon="home" label="Início" to="/dashboard" />
-          <NavButton icon="assignment" label="Rotina" to="/rotina" />
-          <NavButton icon="school" label="Programas" to="/programas" />
-          <NavButton icon="bar_chart" label="Relatórios" to="/reports" />
-          <NavButton icon="settings" label="Ajustes" to="/settings" />
-        </div>
-      )}
-    </nav>
+        
+        {showMobileNav && <BottomNavWrapper isAuthenticated={auth.isAuthenticated} role={auth.user?.role} />}
+      </div>
+    </div>
   );
 };
 
-const NavButton: React.FC<{ icon: string; label: string; to: string }> = ({ icon, label, to }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
+export default function App() {
   return (
-    <button onClick={() => (window.location.hash = `#${to}`)} className={`flex flex-col items-center justify-center gap-1 transition-all active:scale-90 ${isActive ? 'text-primary' : 'text-gray-400'}`}>
-      <span className={`material-symbols-outlined ${isActive ? 'filled' : ''}`}>{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
-    </button>
+    <HelmetProvider>
+      <HashRouter>
+        <AuthProvider>
+          <StudentProvider>
+            <FamilyChildrenProvider>
+              <SelectedChildProvider>
+                <EducaSenseApp />
+              </SelectedChildProvider>
+            </FamilyChildrenProvider>
+          </StudentProvider>
+        </AuthProvider>
+      </HashRouter>
+    </HelmetProvider>
   );
-};
-
-export default App;
+}

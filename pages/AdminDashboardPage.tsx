@@ -1,20 +1,52 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Exercise } from '../types';
+import { supabase } from '../services/supabase';
 
 interface Props {
   history: Exercise[];
 }
 
+interface AdminStats {
+  total_users: number;
+  total_children: number;
+  total_exercises: number;
+  total_visits: number;
+  ai_usage_count: number;
+  plan_distribution: Record<string, number>;
+}
+
 const AdminDashboardPage: React.FC<Props> = ({ history }) => {
   const navigate = useNavigate();
+  const [data, setData] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+        if (error) {
+          console.error('Error fetching admin stats:', error);
+        } else {
+          setData(data);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const stats = [
-    { label: 'Exercícios Criados', value: history.length, icon: 'auto_awesome', color: 'text-primary' },
-    { label: 'Usuários Ativos', value: 124, icon: 'group', color: 'text-blue-500' },
-    { label: 'Saúde do Sistema', value: '99.9%', icon: 'bolt', color: 'text-yellow-500' },
-    { label: 'Uso de Créditos IA', value: '45%', icon: 'database', color: 'text-purple-500' }
+    { label: 'Exercícios Gerados', value: data?.total_exercises || history.length, icon: 'auto_awesome', color: 'text-primary' },
+    { label: 'Usuários Cadastrados', value: data?.total_users || 0, icon: 'group', color: 'text-blue-500' },
+    { label: 'Acessos Totais', value: data?.total_visits || 0, icon: 'visibility', color: 'text-yellow-500' },
+    { label: 'Uso de IA', value: data?.ai_usage_count || 0, icon: 'database', color: 'text-purple-500' }
   ];
 
   return (
@@ -32,7 +64,7 @@ const AdminDashboardPage: React.FC<Props> = ({ history }) => {
            {stats.map((s, i) => (
              <div key={i} className="bg-white/5 p-4 rounded-3xl border border-white/10">
                 <span className={`material-symbols-outlined mb-2 ${s.color}`}>{s.icon}</span>
-                <p className="text-2xl font-black">{s.value}</p>
+                <p className="text-2xl font-black">{loading ? '-' : s.value}</p>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{s.label}</p>
              </div>
            ))}
@@ -40,6 +72,36 @@ const AdminDashboardPage: React.FC<Props> = ({ history }) => {
       </header>
 
       <main className="px-6 space-y-6">
+        
+        {/* Distribuição de Planos */}
+        {data?.plan_distribution && (
+          <section className="space-y-4">
+             <h3 className="text-xl font-black px-1">Planos Ativos</h3>
+             <div className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-soft">
+                <div className="space-y-4">
+                  {Object.entries(data.plan_distribution).map(([plan, count]) => {
+                    const total = data.total_users || 1;
+                    const percentage = Math.round((count / total) * 100);
+                    return (
+                      <div key={plan}>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className="uppercase text-gray-500">{plan || 'Desconhecido'}</span>
+                          <span className="text-gray-900 dark:text-white">{count} ({percentage}%)</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${plan === 'Premium' ? 'bg-yellow-400' : 'bg-primary'}`} 
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+             </div>
+          </section>
+        )}
+
         <section className="space-y-4">
            <h3 className="text-xl font-black px-1">Atividade Recente</h3>
            <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-800 shadow-soft">

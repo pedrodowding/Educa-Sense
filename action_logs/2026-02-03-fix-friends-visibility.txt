@@ -1,0 +1,22 @@
+Action Log: Fix Friends List Visibility
+Date: 2026-02-03
+User Intent: Fix friends not appearing in the list despite "Already Friends" message.
+
+Changes:
+1. Created migration `supabase/migrations/20260203150000_fix_friends_rpc.sql`:
+   - Redefined `rpc_get_my_friends` to return JSONB and ensure correct JOIN logic.
+   - Redefined `rpc_get_friend_requests` to ensure it exists and returns JSONB.
+   - Added explicit GRANT permissions for these functions.
+   - This resolves the 404 errors and ensures data is returned in a format the frontend expects.
+
+2. Updated `hooks/useFriends.ts`:
+   - Improved logging for debugging (shows count of friends/requests fetched).
+   - Added fallback for `friendship_id` vs `id` to ensure compatibility with new RPC return structure.
+
+Analysis:
+- The "ALREADY_FRIENDS" message confirmed the relationship existed in the DB.
+- The 404 error in console indicated the RPC function to fetch lists was missing or not exposed.
+- The fix ensures the backend functions exist and are accessible.
+
+Next Steps:
+- Verify if the friends list now populates correctly.

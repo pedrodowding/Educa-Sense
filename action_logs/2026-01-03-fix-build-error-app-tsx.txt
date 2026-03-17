@@ -1,0 +1,22 @@
+# Correção de Erro de Build e Limpeza de Código
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Problema Identificado
+O usuário reportou um erro de rede ao carregar `App.tsx` (`net::ERR_ABORTED`). A investigação revelou:
+1.  **Erro de Sintaxe:** `pages/SubscriptionPage.tsx` tinha uma tag `<div>` não fechada, impedindo a compilação do módulo.
+2.  **Código Duplicado:** `App.tsx` mantinha definições inline de componentes (`DesktopHeader`, `BottomNavWrapper`, etc.) que já haviam sido extraídos para arquivos próprios, causando confusão e potencial sombreamento de variáveis.
+
+## Ações Realizadas
+1.  **Correção de Sintaxe:** Adicionado o fechamento correto da tag `</div>` em `pages/SubscriptionPage.tsx`.
+2.  **Limpeza do App.tsx:** Removidas as definições inline redundantes de:
+    - `DesktopHeader`
+    - `BottomNavWrapper`
+    - `RoleSwitchButton`
+    - `NavButton`
+    - `DesktopNavLink`
+3.  **Verificação:** Executado `npm run typecheck` (tsc) com sucesso (exit code 0), confirmando que não há mais erros de compilação ou tipos.
+
+## Estado Atual
+A aplicação deve carregar corretamente agora. O código de `App.tsx` está mais limpo e utilizando corretamente os componentes modularizados.

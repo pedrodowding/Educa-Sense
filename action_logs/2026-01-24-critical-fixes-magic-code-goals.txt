@@ -1,0 +1,31 @@
+Action Log: 2026-01-24 - Critical Fixes (Magic Code, Goals, History, Reports)
+
+1. Parent-Child Link (Magic Code):
+   - Frontend: Updated `SettingsPage.tsx` to display the "Código de Acesso" (Access Code) in the student edit modal.
+   - Added a "Refresh" button to regenerate the code if needed.
+   - Confirmed `LoginPage.tsx` has `handleChildLoginRemote` implemented to use `register_child_device` RPC.
+
+2. Plan Generation Isolation:
+   - Fixed `ActionPlanPage.tsx` to use `selectedChild` from context instead of hardcoded `children[0]`.
+   - This ensures the AI plan is generated for the correct child.
+
+3. Weekly Goals Toggle:
+   - Updated `App.tsx` to pass `updateGoalProgress` from `useBehavior` hook.
+   - Updated `BehaviorDashboardPage.tsx` to accept `onUpdateGoal` prop and render a toggle button (Add/Check).
+   - This allows marking goals as done directly from the dashboard.
+
+4. History Crash Fix:
+   - Fixed `pages/components/HistorySwipeRow.tsx` to safely handle null/undefined `score` before calling `.toFixed()`.
+   - This resolves the `TypeError: null is not an object` on mobile.
+
+5. Reports Page (Average by Subject):
+   - Updated `ReportsPage.tsx` to safely convert `score` to Number and handle nulls default to 0.
+   - This prevents "No sufficient data" errors caused by type mismatches or null scores.
+
+6. Data Isolation:
+   - Verified `useDailyProgress`, `ReportsPage`, `ActionPlanPage` all use `child_id` filtering.
+
+Verification Status:
+- Code changes applied.
+- Static analysis confirms logic fixes.
+- User needs to deploy to verify in production.

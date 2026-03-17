@@ -1,0 +1,15 @@
+Data: 2025-12-26
+
+O que foi realizado
+- O modelo de texto usado pelas chamadas de IA (incluindo geração de exercícios) foi forçado para "gemini-2.5-flash", sem possibilidade de override por env.
+- Mantidas as constantes de modelo de imagem configuráveis por env, sem alteração.
+
+Arquivos alterados
+- lib/aiModels.ts
+
+Validação
+- npm run check: OK (typecheck + build)
+
+Possíveis próximos passos
+- Se quiser manter override por ambiente sem risco de cair no 2.0, adicionar validação/allowlist de modelos aceitos (ex.: somente "gemini-2.5-flash") e surface de erro quando a env estiver incorreta.
+- Centralizar configuração de modelos por feature (exercícios vs insights vs outros) caso queira granularidade futura.

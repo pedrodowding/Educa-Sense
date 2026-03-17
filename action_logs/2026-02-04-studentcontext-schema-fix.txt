@@ -1,0 +1,8 @@
+Resumo:
+- Ajustada a query do StudentContext para colunas existentes no schema atual.
+- Removidas referências a story_enabled/drawing_enabled do select e do mapeamento.
+- Adicionado fallback resiliente com log de schema mismatch e carregamento básico.
+- Validação com npm run check concluída.
+
+Próximos passos:
+- Confirmar via console que não há erros 400/42703 e que o log de loaded student aparece.

@@ -1,0 +1,27 @@
+# Action Log: Enforce Student Limit & PIX Fix
+Date: 2026-01-04
+
+## Realizado
+
+### 1. Correção do Checkout PIX (Mercado Pago)
+- **Arquivo**: `supabase/functions/mp-create-checkout/index.ts`
+- **Mudança**: Adicionada configuração explícita de `payment_methods` com listas de exclusão vazias para garantir que o PIX (e outros métodos) sejam exibidos no Checkout Pro.
+- **Contexto**: O Mercado Pago Checkout Pro exibe métodos baseados na configuração da conta, mas enviar exclusões vazias força a tentativa de exibir todos.
+
+### 2. Limite de Estudantes (Backend & Frontend)
+- **Objetivo**: Bloquear criação de mais de 1 estudante para planos FREE e permitir ilimitado para PRO.
+- **Backend (Edge Function)**:
+  - Criada `supabase/functions/create-student/index.ts`.
+  - Lógica: Verifica tier do usuário, conta estudantes atuais, bloqueia se FREE e count >= 1.
+  - Retorna erro 403 com corpo JSON `{ error: "LIMIT_REACHED" }`.
+- **Database (RLS)**:
+  - Criado script `update_children_rls.sql`.
+  - Ação: Removeu permissão de `INSERT` direto na tabela `children` para usuários autenticados. Apenas Service Role (Edge Function) pode inserir.
+- **Frontend**:
+  - **Hook (`hooks/useChildren.ts`)**: Substituído `supabase.from('children').insert()` por `supabase.functions.invoke('create-student')`. Adicionado tratamento para lançar erro estruturado.
+  - **UI (`pages/SettingsPage.tsx`)**: Envolvida a chamada de criação em `try/catch`. Se erro for `LIMIT_REACHED`, exibe o modal de Paywall.
+  - **Componente (`components/PaywallModal.tsx`)**: Adicionado suporte para mensagem personalizada do recurso "Limite de Estudantes".
+
+## Próximos Passos
+1. Validar fluxo de checkout PIX em produção (depende de configuração da conta MP).
+2. Testar fluxo de criação de estudante com usuário FREE (deve bloquear o 2º) e PRO (deve permitir).

@@ -1,0 +1,39 @@
+# Relatório de Ação: Refatoração Admin Dashboard
+Data: 2026-02-07
+Autor: Trae AI
+
+## Resumo
+Transformação da área administrativa ("Gestão Exclusiva") em um Dashboard Executivo, movendo a lista de usuários para uma aba secundária e estabelecendo uma visão baseada em KPIs e métricas operacionais como Home.
+
+## Alterações Realizadas
+
+### 1. Frontend (React)
+- **Novo Componente**: `DashboardTab.tsx` como controlador principal da visão.
+- **Sub-componentes**:
+  - `DashboardKPIs`: Cards de métricas (DAU, Signups, Active Children, Exercises, API Stats) com comparativo de período.
+  - `DashboardCharts`: Gráficos de adesão (cadastros/dia) e engajamento (uso por módulo).
+  - `DashboardOperations`: Monitoramento de erros críticos e backups.
+- **AdminExclusivePage**:
+  - Aba "Dashboard" definida como padrão.
+  - Barra de filtros antiga ocultada na visão de Dashboard.
+  - Navegação ajustada.
+
+### 2. Backend (Supabase RPCs)
+- **Arquivo de Migração**: `supabase/migrations/20260207120000_admin_dashboard_kpis.sql`
+- **Funções Criadas**:
+  - `get_admin_dashboard_stats`: Agregação de todos os KPIs em uma query única.
+  - `get_admin_dashboard_charts`: Dados para gráficos temporais (TimeZone SP) e distribuição.
+  - `get_admin_operational_data`: Consulta otimizada de logs recentes.
+
+### 3. Integração
+- Funções de fetch adicionadas em `adminData.ts`.
+- Tipagem atualizada em `adminUi.ts` para incluir a aba 'dashboard'.
+
+## Validação
+- `npm run typecheck` executado com sucesso (Exit Code 0).
+- Estrutura de arquivos verificada.
+
+## Próximos Passos
+- **Executar Migração SQL**: O usuário deve rodar o SQL criado no Supabase Editor.
+- **Filtros Avançados**: Implementar filtros globais (Plano, Status) no Dashboard (requer atualização das RPCs para joins complexos).
+- **Testar Performance**: Verificar tempo de carregamento com volume de dados de produção.

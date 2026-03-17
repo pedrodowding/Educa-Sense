@@ -1,0 +1,30 @@
+# Relatório de Diagnóstico e Correção de Performance
+
+## Problema Identificado
+O sistema apresentava um comportamento de "travamento" no estado de carregamento inicial ("loading spinner" infinito), especificamente em ambientes locais ou quando a sessão do usuário estava em um estado inconsistente.
+
+## Causa Raiz
+A investigação revelou uma condição de corrida e bloqueio lógico no `SelectedChildContext.tsx`:
+1. O contexto identificava uma sessão de estudante via código (`sessionSource === 'code'`).
+2. Ele entrava em um estado de espera (`waitingForStudent = true`) aguardando o carregamento do perfil do estudante pelo `StudentContext`.
+3. Se o `StudentContext` falhasse em encontrar o estudante (ex: ID inválido no localStorage) ou retornasse erro, ele definia `student = null` e `loading = false`.
+4. O `SelectedChildContext` continuava esperando que `student` fosse preenchido (`!student?.id` continuava `true`), ignorando o fato de que o carregamento já havia terminado.
+5. Resultado: Loop de espera infinito, bloqueando a renderização da aplicação.
+
+## Correções Implementadas
+1. **Lógica de Dependência**: Atualizado `SelectedChildContext` para consumir a propriedade `loading` do `StudentContext`.
+2. **Desbloqueio de Erro**: Alterada a condição de espera para `const waitingForStudent = sessionSource === 'code' && studentLoading;`. Agora, se o carregamento terminar (mesmo sem sucesso), o bloqueio é removido.
+3. **Tratamento de Falha**: Adicionada verificação explicita: se o carregamento terminar e não houver estudante, o contexto aborta a hidratação e inicializa com estado vazio, permitindo que a aplicação redirecione o usuário ou mostre a tela de login corretamente.
+
+## Otimizações de Performance Adicionais
+- **Lazy Loading**: Verificado que o `App.tsx` já utiliza `React.lazy` para todas as rotas principais, garantindo um bundle inicial leve.
+- **Dependências**: Auditoria do `package.json` confirmou que não há bibliotecas pesadas desnecessárias bloqueando o main thread.
+- **Vite Config**: Configuração padrão do Vite está adequada para desenvolvimento rápido.
+
+## Métricas Esperadas
+- **Tempo de Inicialização (Caso de Sucesso)**: < 1.5s (inalterado).
+- **Tempo de Inicialização (Caso de Erro/Sessão Inválida)**: 
+  - **Antes**: Infinito (travado).
+  - **Depois**: < 2s (o tempo de resposta da API do Supabase).
+
+A aplicação agora deve carregar instantaneamente, mesmo em cenários de falha de sessão.

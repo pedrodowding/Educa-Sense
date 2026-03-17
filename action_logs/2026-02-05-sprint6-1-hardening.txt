@@ -1,0 +1,30 @@
+# Relatório de Ação: Sprint 6.1 - Hardening Interações Sociais
+Data: 2026-02-05
+Autor: Trae AI
+
+## Resumo
+Refinamento e endurecimento ("hardening") das funcionalidades de interações sociais implementadas na Sprint 6, focando em robustez, limites e segurança.
+
+## Alterações Realizadas
+
+### 1. Banco de Dados (Supabase)
+- **Migration**: `supabase/migrations/20260205120000_sprint6_1_hardening.sql`
+- **Idempotência**: Adicionado índice único `idx_unique_daily_plan_completion` na tabela `activity_completions` para garantir que um aluno só possa completar o "Plano de Hoje" uma vez por dia, evitando spam de eventos.
+- **Limites de Feed**: Atualizada a função `rpc_get_friend_activities` para retornar estritamente no máximo 3 eventos e apenas do dia atual (`CURRENT_DATE`), garantindo performance e foco no "agora".
+- **Triggers**: Refatorado `check_social_milestones` com bloco `BEGIN ... EXCEPTION` para tratar condições de corrida (race conditions) graciosamente.
+- **Audit Logs**:
+  - Ajustado `rpc_create_challenge` para registrar evento `challenge_created` (antes era `challenge_sent`).
+  - Ajustado `rpc_block_child` para registrar evento `social_block_applied` (antes era `friend_blocked_by_child`).
+
+### 2. Frontend (React/TypeScript)
+- **Verificação de UI**: Confirmado que os componentes sociais (`useSocialInteractions`, `FriendProfilePage`) estão isolados e não vazam para a Home/Dashboard.
+- **Typecheck**: Executado `npm run typecheck` com sucesso (sem erros).
+
+## Arquivos Impactados
+- `supabase/migrations/20260205120000_sprint6_1_hardening.sql` (Novo)
+- `hooks/useSocialInteractions.ts` (Verificado)
+- `pages/student/friends/FriendProfilePage.tsx` (Verificado)
+
+## Próximos Passos
+- Monitorar logs de produção para verificar se o limite de 3 eventos está sendo suficiente para engajamento sem sobrecarga.
+- Avaliar feedback dos pais sobre a funcionalidade de bloqueio e controle parental.

@@ -1,0 +1,25 @@
+Action Log: 2026-01-29 - Reports XP Fallback & Type Fixes
+
+1. Reports Page XP Fallback
+   - Verified fallback logic in `ReportsPage.tsx`: Daily XP chart sums `activity_completions.xp` when no `gamification_logs` exist for a day.
+
+2. Type System Repairs (npm run typecheck)
+   - Updated `ChildProgress` interface in `types.ts` to match DB schema (added `totalActivities`, `strengths`, `weaknesses` etc.).
+   - Updated `ChildContext` interface to match `progressService` usage.
+   - Updated `ChildDevice` interface.
+   - Added `leitura_guiada` to `ActivityFormat` type.
+   - Updated `generateExercise` in `exerciseService.ts` to accept `ActivityFormat`.
+   - Fixed `GuardianProfilePage.tsx` missing `handleSwitchRole`.
+   - Excluded `supabase/functions` from `tsconfig.json` to resolve Deno/Node type conflicts.
+
+3. Behavior Sequence Validation
+   - Confirmed `ReportsPage` uses `child.streak` (DB) and visual history (>= 3 activities).
+   - Confirmed `eventService` has rigorous streak logic (Checkin + Activity) ready for future use.
+
+Verification Status:
+- `npm run typecheck`: PASSED (0 errors).
+- `npm run check`: PASSED.
+
+Próximos passos possíveis:
+- Implementar UI de "Behavior Streak" usando `computeActiveSequenceDays` se desejado.
+- Unificar definições de streak entre DB (trigger) e UI.

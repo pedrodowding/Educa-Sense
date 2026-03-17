@@ -1,0 +1,26 @@
+Action Log - 2025-12-26 - Update AI Model and Fix JSON Parse Error
+
+1. Issue:
+   - User requested to use "gemini-2.5-flash" instead of "gemini-2.0-flash".
+   - Exercise generation was failing with "SyntaxError: JSON Parse error: Unterminated string", likely due to response truncation.
+
+2. Changes:
+   - Modified `lib/aiModels.ts`:
+     - Updated `TEXT_MODEL` default value from `gemini-2.0-flash-exp` to `gemini-2.5-flash`.
+   - Modified `services/ai/exerciseService.ts`:
+     - Added `maxOutputTokens: 8192` to the `config` object in all `generateContentWithUsage` calls:
+       - `generateExercise` (initial generation)
+       - `generateExercise` (fill generation)
+       - `generateReadingExercise`
+       - `generateArtsExercise`
+       - `generateEnglishExercise`
+       - `generateEnglishExercise` (repair)
+       - `verifyAnswer`
+
+3. Verification:
+   - Ran `npm run check`: Passed (typecheck + build).
+   - This ensures no syntax errors were introduced and the changes are type-safe.
+
+4. Notes:
+   - The `Unterminated string` error is typically caused by the AI model hitting the default token limit before completing the JSON response. Increasing `maxOutputTokens` allows for longer responses (10 questions + explanations).
+   - The model version update respects the user's specific request for "2.5 flash".

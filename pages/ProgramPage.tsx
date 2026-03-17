@@ -80,13 +80,22 @@ const ProgramPage: React.FC = () => {
       </main>
 
       <div className="sticky bottom-0 left-0 right-0 p-4 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-40">
-        <button 
-          onClick={() => navigate('/exercicio-facil/criar')}
-          className="w-full bg-primary hover:bg-primary-dark text-background-dark font-black text-lg h-14 rounded-2xl shadow-glow transition-transform active:scale-95 flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined">add_circle</span>
-          Criar Exercício
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate('/exercicio-facil/historico')}
+            className="h-14 bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-800 text-text-main dark:text-white font-black text-sm rounded-2xl shadow-soft active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">history</span>
+            Histórico
+          </button>
+          <button 
+            onClick={() => navigate('/exercicio-facil/criar')}
+            className="h-14 bg-primary hover:bg-primary-dark text-background-dark font-black text-sm rounded-2xl shadow-glow transition-transform active:scale-95 flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">add_circle</span>
+            Criar
+          </button>
+        </div>
       </div>
     </div>
   );

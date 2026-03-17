@@ -1,0 +1,38 @@
+# Separação de Módulos: Exercício Fácil vs Leitura Guiada
+
+**Data:** 03/01/2026
+**Responsável:** Trae (AI Assistant)
+
+## Resumo
+Foi realizada uma separação estrutural completa entre o fluxo de **"Exercício Fácil"** (Atividades de Quiz) e **"Leitura Guiada"** (Programa de Histórias), garantindo que um não interfira no outro e eliminando bugs de renderização cruzada.
+
+## Alterações Realizadas
+
+### 1. Tipagem Forte (`types.ts`)
+- Criados tipos discriminados:
+  - `ActivityFormat`: "multipla" | "dissertativa" | "mista" (Exclusivo para Exercício Fácil)
+  - `ProgramKey`: Inclui "leitura_guiada" como programa separado.
+- Interface `Exercise` atualizada para aceitar ambos, mas com validação contextual.
+
+### 2. UI de Criação (`CreateExercisePage.tsx`)
+- **Removida opção "Leitura Guiada"**: A lista de formatos agora exibe apenas Múltipla, Dissertativa e Mista.
+- O state local agora é tipado como `ActivityFormat`, impedindo seleção inválida.
+
+### 3. Backend / Serviço IA (`exerciseService.ts`)
+- **Validação de Entrada**: Se `format === 'leitura_guiada'` for passado para o gerador genérico, uma exceção é lançada.
+- **Fallback Seguro**: Se o formato for inválido ou ausente, o fallback agora é `multiple` (Quiz), nunca mais `leitura_guiada`.
+
+### 4. Roteamento e Renderização (`App.tsx` e Pages)
+- **Rotas Separadas**:
+  - `/exercicio-facil/resultado/:id` -> `ResultPage.tsx` (Somente Quizzes e Artes)
+  - `/leitura-guiada/resultado/:id` -> `ReadingResultPage.tsx` (Novo componente exclusivo para Leitura)
+- **Componentes Separados**:
+  - `ResultPage.tsx`: Limpo de lógica de leitura. Agora contém um **Guard** que exibe erro se receber um exercício do tipo "leitura_guiada".
+  - `ReadingResultPage.tsx`: Criado a partir da extração da lógica de leitura guiada (texto, etapas, áudio, mediação).
+- **Navegação**:
+  - `LeituraGuiadaPage.tsx` agora redireciona explicitamente para a nova rota `/leitura-guiada/resultado/...`.
+
+## Resultados Esperados
+1. Ao criar um exercício em "Exercício Fácil", nunca aparecerá "Leitura Guiada" como opção.
+2. Se por algum motivo um exercício de leitura cair na tela de resultado de quiz, aparecerá uma tela de erro amigável "Formato Inválido".
+3. O programa "Leitura Guiada" continua funcionando perfeitamente em sua própria rota isolada.

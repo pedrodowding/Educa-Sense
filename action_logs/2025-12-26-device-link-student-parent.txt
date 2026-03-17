@@ -1,0 +1,43 @@
+Data: 2025-12-26
+
+O que foi feito
+1) Login do aluno via código (Supabase RPC register_child_device)
+   - No login do aluno, o código é normalizado (trim + uppercase) e enviado ao RPC.
+   - O dispositivo é identificado por um deviceId persistido (localStorage) e um payload de info (userAgent, plataforma, idioma, timezone e screen).
+   - O código de acesso do aluno fica em sessionStorage para manter o “touch” do dispositivo durante a sessão do aluno.
+
+2) Dashboard do aluno mantém o dispositivo “ativo”
+   - Ao abrir o /student com um aluno selecionado, o app chama periodicamente o RPC register_child_device (a cada 5 min) para atualizar last_seen.
+   - Isso permite que o responsável veja “agora/há X min” e entenda se o celular atual está realmente em uso.
+
+3) Painel do responsável exibe dispositivos conectados
+   - Em /child/:id foi adicionada uma seção “Dispositivos conectados” que busca os registros em child_devices e mostra:
+     - tipo aproximado (mobile/tablet/desktop via userAgent),
+     - status “Ativo” quando last_seen <= 10 min,
+     - dados (screen/timezone) e um identificador curto do deviceId.
+
+Arquivos alterados
+- pages/LoginPage.tsx
+- pages/StudentDashboardPage.tsx
+- pages/ChildDetailPage.tsx
+- pages/components/ChildDevicesSection.tsx
+- services/device.ts
+- vite-env.d.ts
+- pages/BehaviorDashboardPage.tsx
+- pages/ManageGoalsPage.tsx
+
+Validação
+- build: OK (vite build)
+- typecheck: OK (tsc --noEmit)
+
+Próximos passos sugeridos
+1) Segurança do modo aluno:
+   - Se quiser “blindar” o acesso ao /student (exigir código sempre), dá para bloquear acesso sem sessionStorage e/ou querystring.
+
+2) Dispositivos:
+   - Implementar “revogar dispositivo” no painel do responsável (marcar como inativo ou remover).
+   - Melhorar o label do dispositivo (ex.: permitir o pai renomear “Celular do João”).
+
+3) Qualidade:
+   - Adicionar script de lint no package.json (hoje não há comando lint).
+

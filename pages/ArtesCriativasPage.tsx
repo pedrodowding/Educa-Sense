@@ -2,20 +2,49 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Child, Exercise, Difficulty, Subject } from '../types';
-import { generateArtsExerciseAI, generateColoringPageAI, transformPhotoToColoringAI } from '../services/geminiService';
+import { generateArtsExerciseAI, generateColoringPageAI, transformPhotoToColoringAI, ColoringStyle, generateIllustrationAI } from '../services/geminiService';
+import { Entitlements } from '../billing/entitlements';
+import { PaywallModal } from '../components/PaywallModal';
+import { historyService } from '../services/historyService';
 
 interface Props {
   children: Child[];
-  onSave: (exercise: Exercise) => void;
+  onSave: (exercise: Exercise) => Promise<Exercise | null | void>;
 }
 
 type WorkMode = 'menu' | 'mission' | 'text2color' | 'img2color' | 'result';
 
+const stylesOptions: {id: ColoringStyle, label: string, icon: string, desc: string}[] = [
+  { id: 'classic', label: 'Clássico', icon: 'auto_awesome', desc: 'Traços firmes e limpos' },
+  { id: 'cute', label: 'Fofo', icon: 'sentiment_satisfied', desc: 'Arredondado e kawaii' },
+  { id: 'cartoon', label: 'Cartoon', icon: 'palette', desc: 'Expressivo e divertido' },
+  { id: 'minimal', label: 'Minimalista', icon: 'crop_square', desc: 'Simples e abstrato' }
+];
+
 const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<WorkMode>('menu');
-  const [selectedChild] = useState<Child>(children[0]);
   
+  // Proteção contra lista de alunos vazia
+  const initialChild = children && children.length > 0 ? children[0] : null;
+  const [selectedChild] = useState<Child | null>(initialChild);
+  
+  // Se não houver aluno, não renderiza a página normal
+  if (!initialChild || !selectedChild) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
+        <h2 className="text-xl font-bold text-gray-700">Nenhum aluno selecionado</h2>
+        <p className="text-gray-500 mb-4">Por favor, cadastre ou selecione um aluno na tela inicial.</p>
+        <button 
+          onClick={() => navigate('/dashboard')}
+          className="px-6 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors"
+        >
+          Voltar ao Dashboard
+        </button>
+      </div>
+    );
+  }
+
   // States para Missão
   const [theme, setTheme] = useState('Fantasia');
   const [materials, setMaterials] = useState('Papel e lápis');
@@ -24,24 +53,39 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
   
   // States para Colorir
   const [coloringPrompt, setColoringPrompt] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState<ColoringStyle>(() => {
+    try {
+      return (localStorage.getItem('coloring_style') as ColoringStyle) || 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+
+  const isPro = Entitlements.getUserTier() === 'PRO';
+
+  const handleSelectStyle = (style: ColoringStyle) => {
+    if (style !== 'classic' && !isPro) {
+      setShowPaywall(true);
+      return;
+    }
+    setSelectedStyle(style);
+    localStorage.setItem('coloring_style', style);
+  };
+
   const [uploadedImage, setUploadedImage] = useState<{data: string, mime: string} | null>(null);
   
   // State de resultado gerado
   const [generatedImg, setGeneratedImg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSavedInGallery, setIsSavedInGallery] = useState(false);
-
-  const checkApiKeyAndRun = async (fn: () => Promise<void>) => {
-    // @ts-ignore
-    const hasKey = await window.aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-      // @ts-ignore
-      await window.aistudio.openSelectKey();
-    }
-    await fn();
-  };
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleGenerateMission = async () => {
+    if (!Entitlements.canPerformAction('artes_criativas_per_day_limit')) {
+      setShowPaywall(true);
+      return;
+    }
+
     setLoading(true);
     try {
       const exercise = await generateArtsExerciseAI({
@@ -53,8 +97,15 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
         difficulty,
         questionCount
       });
-      onSave(exercise);
-      navigate(`/exercicio-facil/resultado/${exercise.id}`);
+      const savedExercise = await onSave({ ...exercise, childId: selectedChild.id });
+      
+      Entitlements.trackAction('artes_criativas_per_day_limit');
+
+      if (savedExercise && 'id' in savedExercise) {
+        navigate(`/exercicio-facil/resultado/${savedExercise.id}`);
+      } else {
+        navigate(`/exercicio-facil/resultado/${exercise.id}`);
+      }
     } catch (e) {
       alert('Erro ao gerar missão artística.');
     } finally {
@@ -64,18 +115,25 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
 
   const handleGenerateFromText = async () => {
     if (!coloringPrompt) return alert('Descreva o que quer desenhar!');
+
+    if (!Entitlements.canPerformAction('artes_criativas_per_day_limit')) {
+      setShowPaywall(true);
+      return;
+    }
+
     setLoading(true);
     setIsSavedInGallery(false);
     try {
-      await checkApiKeyAndRun(async () => {
-        const img = await generateColoringPageAI(coloringPrompt);
-        if (img) {
-          setGeneratedImg(img);
-          setMode('result');
-        }
-      });
-    } catch (e) {
-      alert('Erro ao gerar desenho.');
+      const img = await generateColoringPageAI(coloringPrompt, selectedStyle);
+      if (img) {
+        Entitlements.trackAction('artes_criativas_per_day_limit');
+        setGeneratedImg(img);
+        setMode('result');
+      }
+    } catch (e: any) {
+      console.error('[ArtesPage] Catch Error:', e);
+      const msg = e.message || JSON.stringify(e);
+      alert(`Erro: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -97,18 +155,25 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
 
   const handleTransformPhoto = async () => {
     if (!uploadedImage) return alert('Selecione uma foto primeiro!');
+
+    if (!Entitlements.canPerformAction('artes_criativas_per_day_limit')) {
+      setShowPaywall(true);
+      return;
+    }
+
     setLoading(true);
     setIsSavedInGallery(false);
     try {
-      await checkApiKeyAndRun(async () => {
-        const img = await transformPhotoToColoringAI(uploadedImage.data, uploadedImage.mime);
-        if (img) {
-          setGeneratedImg(img);
-          setMode('result');
-        }
-      });
-    } catch (e) {
-      alert('Erro ao transformar foto.');
+      const img = await transformPhotoToColoringAI(uploadedImage.data, uploadedImage.mime, selectedStyle);
+      if (img) {
+        Entitlements.trackAction('artes_criativas_per_day_limit');
+        setGeneratedImg(img);
+        setMode('result');
+      } else {
+         throw new Error('Não foi possível transformar a imagem.');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Erro ao transformar foto.');
     } finally {
       setLoading(false);
     }
@@ -128,7 +193,7 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
     document.body.removeChild(link);
   };
 
-  const handleSaveToGallery = () => {
+  const handleSaveToGallery = async () => {
     if (!generatedImg || isSavedInGallery) return;
 
     const newExercise: Exercise = {
@@ -147,9 +212,28 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
       completed: true
     };
 
-    onSave(newExercise);
-    setIsSavedInGallery(true);
-    alert('Desenho salvo com sucesso! Você pode encontrá-lo no histórico de atividades do aluno.');
+    try {
+      // Check if we need to upload base64 to Storage
+      let finalImageUrl = generatedImg;
+      if (generatedImg.startsWith('data:')) {
+         const uploadedUrl = await historyService.uploadDrawing(generatedImg, selectedChild.id);
+         if (uploadedUrl) {
+            finalImageUrl = uploadedUrl;
+            // Update the exercise object before saving
+            newExercise.imageUrl = finalImageUrl;
+         }
+      }
+
+      const saved = await onSave(newExercise);
+      if (saved && typeof saved === 'object' && 'id' in saved) {
+        setIsSavedInGallery(true);
+        alert('Desenho salvo com sucesso! Você pode encontrá-lo no histórico de atividades do aluno.');
+      } else {
+        throw new Error('Falha ao salvar no histórico.');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Não foi possível salvar o desenho no histórico.');
+    }
   };
 
   const handleReset = () => {
@@ -173,6 +257,12 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
   if (mode === 'result' && generatedImg) {
     return (
       <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark">
+        {showPaywall && (
+          <PaywallModal 
+            isOpen={showPaywall} 
+            onClose={() => setShowPaywall(false)} 
+          />
+        )}
         {/* Header fixo no topo com botões de navegação claros */}
         <header className="p-6 pt-10 flex items-center justify-between no-print border-b border-gray-100 dark:border-gray-800 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-md sticky top-0 z-40">
           <button onClick={handleReset} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 font-bold text-sm active:scale-95 transition-all">
@@ -185,54 +275,55 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
           </button>
         </header>
 
-        {/* Conteúdo Central Rolável */}
-        <main className="p-6 flex flex-col items-center flex-1 overflow-y-auto no-scrollbar pb-32 animate-fade-in">
-           <div className="w-full max-w-sm bg-white border-4 border-purple-50 dark:border-gray-800 p-4 rounded-[48px] shadow-soft mb-10">
+        <main className="p-6 flex flex-col items-center flex-1 overflow-y-auto no-scrollbar pb-40 animate-fade-in">
+           <div className="w-full max-w-sm bg-white border-4 border-purple-50 dark:border-gray-800 p-4 rounded-[48px] shadow-soft mb-4">
               <img src={generatedImg} alt="Desenho gerado" className="w-full h-auto rounded-[32px] shadow-sm" />
               <div className="mt-6 text-center">
                  <p className="text-[10px] font-black uppercase text-purple-300 tracking-[3px]">Atividade de Colorir</p>
                  <p className="text-xs text-text-sub mt-1">Gere, imprima e divirta-se!</p>
               </div>
            </div>
+        </main>
 
-           {/* Ações da Arte - Integradas no scroll acima do BottomNav */}
-           <div className="w-full max-w-sm space-y-4 no-print pb-20">
-              <div className="grid grid-cols-2 gap-4">
+        {/* Footer Fixo com Ações */}
+        <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 z-50 no-print flex justify-center pb-8">
+           <div className="w-full max-w-sm space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                  <button 
                   onClick={handleSaveToGallery}
-                  className={`h-24 rounded-3xl font-black flex flex-col items-center justify-center gap-1 shadow-soft transition-all active:scale-95 ${isSavedInGallery ? 'bg-green-500 text-white' : 'bg-white border-4 border-purple-50 text-purple-500'}`}
+                  className={`h-14 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 ${isSavedInGallery ? 'bg-green-500 text-white' : 'bg-purple-100 text-purple-600'}`}
                  >
-                    <span className="material-symbols-outlined text-3xl">{isSavedInGallery ? 'cloud_done' : 'bookmark_add'}</span>
-                    <span className="text-[10px] uppercase">{isSavedInGallery ? 'Salvo na Galeria' : 'Salvar na Galeria'}</span>
+                    <span className="material-symbols-outlined text-xl">{isSavedInGallery ? 'check' : 'bookmark'}</span>
+                    <span className="text-xs uppercase">{isSavedInGallery ? 'Salvo' : 'Salvar'}</span>
                  </button>
                  
                  <button 
                   onClick={handlePrint}
-                  className="h-24 bg-purple-400 text-white rounded-3xl font-black flex flex-col items-center justify-center gap-1 shadow-glow active:scale-95 transition-all"
+                  className="h-14 bg-purple-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-glow active:scale-95 transition-all"
                  >
-                    <span className="material-symbols-outlined text-3xl">print</span>
-                    <span className="text-[10px] uppercase">Imprimir Agora</span>
+                    <span className="material-symbols-outlined text-xl">print</span>
+                    <span className="text-xs uppercase">Imprimir</span>
                  </button>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={handleDownload}
-                  className="h-16 bg-gray-100 dark:bg-gray-800 text-text-sub font-black rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                  className="h-12 bg-gray-100 dark:bg-gray-800 text-text-sub font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
                 >
-                  <span className="material-symbols-outlined">download</span>
-                  <span className="text-[10px] uppercase tracking-widest">Baixar PNG</span>
+                  <span className="material-symbols-outlined text-lg">download</span>
+                  <span className="text-[10px] uppercase tracking-wider">Baixar</span>
                 </button>
                 <button 
                   onClick={handleReset}
-                  className="h-16 bg-purple-50 dark:bg-purple-900/10 text-purple-400 font-black rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                  className="h-12 bg-gray-50 dark:bg-white/5 text-gray-400 font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
                 >
-                  <span className="material-symbols-outlined">auto_fix_high</span>
-                  <span className="text-[10px] uppercase tracking-widest">Criar Outro</span>
+                  <span className="material-symbols-outlined text-lg">refresh</span>
+                  <span className="text-[10px] uppercase tracking-wider">Novo</span>
                 </button>
               </div>
            </div>
-        </main>
+        </footer>
 
         {/* Layout Otimizado para Impressão */}
         <div className="print-only fixed inset-0 bg-white z-[1000] p-10 flex flex-col items-center justify-between">
@@ -261,14 +352,30 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
     );
   }
 
+  const getPageTitle = () => {
+    switch (mode) {
+      case 'text2color': return 'Estúdio de Desenhos';
+      case 'img2color': return 'Transformação Mágica';
+      case 'mission': return 'Missão Criativa';
+      case 'result': return 'Resultado';
+      default: return 'Artes Criativas';
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-background-dark">
+      {showPaywall && (
+        <PaywallModal 
+          isOpen={showPaywall} 
+          onClose={() => setShowPaywall(false)} 
+        />
+      )}
       <header className="p-6 pt-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => mode === 'menu' ? handleExit() : setMode('menu')} className="size-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center active:scale-95">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h1 className="text-2xl font-black text-purple-400">Artes Criativas</h1>
+          <h1 className="text-2xl font-black text-purple-400">{getPageTitle()}</h1>
         </div>
         <button onClick={goToHome} className="size-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center active:scale-95">
           <span className="material-symbols-outlined text-text-sub">home</span>
@@ -310,6 +417,38 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
                  onChange={e => setColoringPrompt(e.target.value)}
                />
              </div>
+
+             <div className="space-y-3">
+               <p className="text-[10px] font-black uppercase text-text-sub tracking-widest px-1">Estilo do desenho (opcional)</p>
+               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                  {stylesOptions.map(s => {
+                     const isLocked = !isPro && s.id !== 'classic';
+                     const isSelected = selectedStyle === s.id;
+                     return (
+                        <button
+                           key={s.id}
+                           onClick={() => handleSelectStyle(s.id)}
+                           className={`
+                              flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-all active:scale-95 text-left min-w-[160px]
+                              ${isSelected 
+                                 ? 'bg-purple-100 border-purple-400' 
+                                 : 'bg-gray-50 dark:bg-gray-800 border-transparent hover:bg-gray-100'}
+                              ${isLocked ? 'opacity-60' : ''}
+                           `}
+                        >
+                           <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-purple-600' : 'text-gray-400'}`}>
+                             {isLocked ? 'lock' : s.icon}
+                           </span>
+                           <div>
+                             <p className={`font-bold text-xs ${isSelected ? 'text-purple-700' : 'text-gray-600'}`}>{s.label}</p>
+                             <p className={`text-[10px] ${isSelected ? 'text-purple-500' : 'text-gray-400'}`}>{s.desc}</p>
+                           </div>
+                        </button>
+                     )
+                  })}
+               </div>
+             </div>
+
              <button onClick={handleGenerateFromText} className="w-full h-16 bg-purple-400 text-white font-black rounded-2xl shadow-glow active:scale-95 transition-all">
                Gerar Desenho Mágico
              </button>
@@ -330,6 +469,38 @@ const ArtesCriativasPage: React.FC<Props> = ({ children, onSave }) => {
                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                 </label>
              </div>
+
+             <div className="space-y-3">
+               <p className="text-[10px] font-black uppercase text-text-sub tracking-widest px-1">Estilo do desenho (opcional)</p>
+               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                  {stylesOptions.map(s => {
+                     const isLocked = !isPro && s.id !== 'classic';
+                     const isSelected = selectedStyle === s.id;
+                     return (
+                        <button
+                           key={s.id}
+                           onClick={() => handleSelectStyle(s.id)}
+                           className={`
+                              flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-all active:scale-95 text-left min-w-[160px]
+                              ${isSelected 
+                                 ? 'bg-purple-100 border-purple-400' 
+                                 : 'bg-gray-50 dark:bg-gray-800 border-transparent hover:bg-gray-100'}
+                              ${isLocked ? 'opacity-60' : ''}
+                           `}
+                        >
+                           <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-purple-600' : 'text-gray-400'}`}>
+                             {isLocked ? 'lock' : s.icon}
+                           </span>
+                           <div>
+                             <p className={`font-bold text-xs ${isSelected ? 'text-purple-700' : 'text-gray-600'}`}>{s.label}</p>
+                             <p className={`text-[10px] ${isSelected ? 'text-purple-500' : 'text-gray-400'}`}>{s.desc}</p>
+                           </div>
+                        </button>
+                     )
+                  })}
+               </div>
+             </div>
+
              <button 
                onClick={handleTransformPhoto} 
                disabled={!uploadedImage}
